@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "travel-agent-skills",
+  "displayName": "Travel Agent Skills",
+  "version": "1.0.0",
+  "description": "Agent skills for live flight and hotel pricing: cheapest dates, fare watch, trip planning, hotel search, rate parity. Independent APIs, not affiliated with Google or Booking.com.",
+  "author": {
+    "name": "Matan Rabi",
+    "url": "https://flightpowers.com"
+  },
+  "homepage": "https://flightpowers.com",
+  "license": "MIT",
+  "keywords": [
+    "travel",
+    "flights",
+    "hotels",
+    "airfare",
+    "fare-tracking",
+    "trip-planning",
+    "rate-parity",
+    "rapidapi",
+    "mcp",
+    "api"
+  ],
+  "skills": [
+    "./skills/travel-data-api",
+    "./skills/cheapest-dates",
+    "./skills/destination-compare",
+    "./skills/fare-watch",
+    "./skills/hotel-search",
+    "./skills/rate-parity-monitor",
+    "./skills/travel-brief",
+    "./skills/trip-planner"
+  ]
+}

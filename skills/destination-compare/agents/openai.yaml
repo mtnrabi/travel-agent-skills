@@ -1,0 +1,3 @@
+interface:
+  display_name: "Destination Compare"
+  short_description: "Rank many destinations from one origin by real-time cheapest fare for the same travel window."

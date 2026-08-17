@@ -1,0 +1,3 @@
+interface:
+  display_name: "Cheapest Dates"
+  short_description: "Scan a date range for the lowest live fare and say whether it is low, typical, or high for the route."

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Travel Brief"
+  short_description: "Format live flight and hotel results into a client-ready brief: recommendation, comparison table, price verdict, links, and a checked-at timestamp."

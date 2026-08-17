@@ -1,0 +1,3 @@
+interface:
+  display_name: "Hotel Search"
+  short_description: "Find and price hotels with real-time Booking.com data by destination and dates, or check one named property's availability."

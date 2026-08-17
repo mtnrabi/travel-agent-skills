@@ -1,0 +1,82 @@
+# A dead endpoint in a registry listing is worse than no listing at all
+# (MCP Growth Playbook, tactic 5), and a remote MCP server fails silently:
+# nobody reports it, they just uninstall. This is the check that notices.
+#
+# It probes the two things that can break independently -- the HTTP surface
+# and the MCP protocol handshake -- because /health can answer 200 while the
+# session manager is dead and every tools/list returns 500.
+name: uptime
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub queues scheduled runs under load, so treat the
+    # cadence as a floor, not a guarantee.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: paid
+            base: https://google-flights-mcp.flightpowers.com
+          - name: free
+            base: https://google-flights-lulu.flightpowers.com
+    steps:
+      - name: health
+        run: |
+          code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 20 "${{ matrix.base }}/health")
+          echo "GET /health -> $code"
+          cat /tmp/body
+          test "$code" = "200"
+
+      - name: mcp handshake
+        run: |
+          # initialize is the cheapest call that proves the session manager
+          # started. A server whose lifespan never ran answers 500 here while
+          # /health still answers 200.
+          code=$(curl -s -o /tmp/init -w '%{http_code}' --max-time 30 -X POST \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"uptime-probe","version":"1.0"}}}' \
+            "${{ matrix.base }}/mcp")
+          echo "POST /mcp initialize -> $code"
+          head -c 400 /tmp/init
+          test "$code" = "200"
+          grep -q '"serverInfo"' /tmp/init
+
+  report:
+    needs: probe
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: open or update an issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Uptime probe failed';
+            const url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: 'uptime',
+            });
+            const body = `A scheduled uptime probe failed.\n\nRun: ${url}\nTime: ${new Date().toISOString()}`;
+            // One issue per outage, not one per probe: a 6-hour outage would
+            // otherwise open 24 identical issues.
+            if (open.length) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: open[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                ...context.repo, title, body, labels: ['uptime'],
+              });
+            }

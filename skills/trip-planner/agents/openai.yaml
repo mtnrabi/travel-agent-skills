@@ -1,0 +1,3 @@
+interface:
+  display_name: "Trip Planner"
+  short_description: "Combine a round-trip flight search and a hotel search on matching dates into one per-person trip budget."

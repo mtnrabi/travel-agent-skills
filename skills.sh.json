@@ -1,0 +1,44 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Flight Search",
+      "description": "Find when to fly and where to go: scan a whole departure-date range, or fan a list of destination airports out in one real-time Google Flights search, ranked cheapest first and judged against Google's own price_insights_low / price_insights_high band. Not affiliated with Google.",
+      "skills": [
+        "cheapest-dates",
+        "destination-compare"
+      ]
+    },
+    {
+      "title": "Fare and Rate Monitoring",
+      "description": "Re-check one pinned route over time for a book-now-or-wait verdict, or price the same hotel and dates as a resident of several countries would see them via proxy_country to expose rate-parity gaps. Every check is a fresh live call: fares go stale in minutes and are never reused.",
+      "skills": [
+        "fare-watch",
+        "rate-parity-monitor"
+      ]
+    },
+    {
+      "title": "Hotels and Stays",
+      "description": "Search real-time Booking.com properties by free-text destination and dates with budget_per_night and 24 filters, or check one named hotel's availability and nightly price. Sold out comes back as available: false, which is an answer, not an error. Not affiliated with Booking.com.",
+      "skills": [
+        "hotel-search"
+      ]
+    },
+    {
+      "title": "Trip Planning and Client Output",
+      "description": "Total round-trip airfare and lodging across aligned checkin_date / checkout_date into one all-in per-person trip budget, then write the options up as a client-ready brief with booking links and a prices-checked-at timestamp.",
+      "skills": [
+        "trip-planner",
+        "travel-brief"
+      ]
+    },
+    {
+      "title": "Developer Workflows",
+      "description": "Routing and reference for the underlying REST APIs and the hosted flights MCP servers: auth headers, both hosts, endpoints, request parameters, exact response field names, empty-array and non-200 handling, MCP tool mapping, and per-request billing.",
+      "skills": [
+        "travel-data-api"
+      ]
+    }
+  ]
+}

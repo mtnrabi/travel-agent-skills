@@ -1,0 +1,3 @@
+interface:
+  display_name: "Fare Watch"
+  short_description: "Re-check a route on a schedule and say whether the live fare is low, typical, or high."

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Travel Data API"
+  short_description: "Auth, endpoints, parameters, response fields, curl, and MCP routing for the real-time Google Flights and Booking.com data APIs."
