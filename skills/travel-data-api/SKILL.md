@@ -1,13 +1,13 @@
 ---
 name: travel-data-api
-description: Reference and routing layer for the independent real-time Google Flights and Booking.com data APIs on RapidAPI, plus the two hosted flights MCP servers and the Apify actors - auth headers, both hosts, every endpoint, every request parameter, exact response field names, empty-result and non-200 handling, MCP tool mapping, fan-out caps, and per-request billing. Use when the user asks about rapidapi google flights, google-flights-live-api, booking-live-api, flightpowers, google-flights-mcp, google-flights-lulu, the Apify flights or booking actor, a flight price, airfare, or flight search API, a hotel price or hotel availability API, curl or client code, the request body or response schema, an API key, x-rapidapi-key or x-rapidapi-host, how to install the MCP server with claude mcp add, why a call returns an empty [] array or a non-200, whether one key covers both APIs, what a call costs, or the parameters sort_type, use_fallback, use_ext_proxy, proxy_country, seat_type, limit, and price_insights. Returns endpoint tables, runnable curl you can port to any language, and the exact JSON fields for one-way, round-trip, hotel search, and hotel_by_name. Plumbing layer - for an actual travel job prefer cheapest-dates, fare-watch, trip-planner, destination-compare, hotel-search, rate-parity-monitor, or travel-brief.
+description: Reference and routing layer for the independent real-time Google Flights and Booking.com data APIs on RapidAPI, plus the hosted MCP servers for flights and hotels and the Apify actors - auth headers, both hosts, every endpoint, every request parameter, exact response field names, empty-result and non-200 handling, MCP tool mapping, fan-out caps, and per-request billing. Use when the user asks about rapidapi google flights, google-flights-live-api, booking-live-api, flightpowers, google-flights-mcp, google-flights-lulu, the Apify flights or booking actor, a flight price, airfare, or flight search API, a hotel price or hotel availability API, curl or client code, the request body or response schema, an API key, x-rapidapi-key or x-rapidapi-host, how to install the MCP server with claude mcp add, why a call returns an empty [] array or a non-200, whether one key covers both APIs, what a call costs, what an X-Search-Status of degraded means, or the parameters sort_type, use_fallback, strict, use_ext_proxy, proxy_country, price_as_seen_from, seat_type, limit, and price_insights. Returns endpoint tables, runnable curl you can port to any language, and the exact JSON fields for one-way, round-trip, hotel search, and hotel_by_name. Plumbing layer - for an actual travel job prefer cheapest-dates, fare-watch, trip-planner, destination-compare, hotel-search, rate-parity-monitor, or travel-brief.
 ---
 
 # Travel Data API
 
 ## Overview
 
-The shared routing and reference layer for two independent real-time travel APIs - a Google Flights data API and a Booking.com data API, both billed through RapidAPI - plus two hosted MCP servers that front the flights API and one Apify actor per API. Every other skill in this repo delegates here for auth, base URLs, parameter names, and response field names. Prefer the MCP tools when a client has them configured; use REST curl otherwise.
+The shared routing and reference layer for two independent real-time travel APIs - a Google Flights data API and a Booking.com data API, both billed through RapidAPI - plus three hosted MCP servers - an ad-free flights server, an ad-free hotels server, and a free ad-supported server carrying both - and one Apify actor per API. Every other skill in this repo delegates here for auth, base URLs, parameter names, and response field names. Prefer the MCP tools when a client has them configured; use REST curl otherwise.
 
 These are independent APIs that return publicly available flight and hotel pricing. They are not affiliated with, endorsed by, or sponsored by Google or Booking.com.
 
@@ -16,9 +16,10 @@ These are independent APIs that return publicly available flight and hotel prici
 | Path | URL | Key | Prefer it when |
 |---|---|---|---|
 | Flights REST | `https://google-flights-live-api.p.rapidapi.com` | caller's RapidAPI key | One exact itinerary, full parameter control, or you are writing code for the user |
-| Hotels REST | `https://booking-live-api.p.rapidapi.com` | caller's RapidAPI key | Any hotel work - there is no hotels MCP server |
-| Flights MCP, paid | `https://google-flights-mcp.flightpowers.com/mcp` | caller's own RapidAPI key | Flexible dates or several candidate destinations; ad-free; reports spend |
-| Flights MCP, free | `https://google-flights-lulu.flightpowers.com/mcp` | none needed | Quick look-ups with no key; one disclosed sponsored card per result |
+| Hotels REST | `https://booking-live-api.p.rapidapi.com` | caller's RapidAPI key | Full parameter control, `proxy_country`, and the 24 `filters[]` values |
+| Flights MCP, ad-free | `https://flights.flightpowers.com/mcp` | caller's own RapidAPI key | Flexible dates or several candidate destinations; ad-free; reports spend. Also answers on `google-flights-mcp.flightpowers.com/mcp` |
+| Hotels MCP, ad-free | `https://hotels.flightpowers.com/mcp` | caller's own RapidAPI key | Hotel work from an MCP client; adds `price_as_seen_from` and `filters` |
+| MCP, free | `https://google-flights-lulu.flightpowers.com/mcp` | none needed | Quick look-ups with no key. Flights AND hotels; one disclosed sponsored card per response |
 | Apify actor, flights | `https://apify.com/mtnrabi/google-flights-real-time-api` ($5 / 1k) | Apify | No-code or scheduled batch runs |
 | Apify actor, hotels | `https://apify.com/mtnrabi/booking-real-time-api` ($4 / 1k) | Apify | No-code or scheduled batch runs |
 
@@ -54,9 +55,9 @@ Every documented endpoint on both hosts is `POST` with a JSON body and `Content-
 | `POST /api/google_flights/oneway/v1` | `departure_date`, `from_airport`, `to_airport` | bare JSON array of one-way itineraries |
 | `POST /api/google_flights/roundtrip/v1` | `departure_date`, `return_date`, `from_airport`, `to_airport` | bare JSON array of round-trip itineraries |
 
-One-way optional parameters: `max_stops`, `sort_type` (`Overall` \| `Price` \| `Duration`), `airline_codes[]`, `exclude_airline_codes[]`, `departure_time_min`, `departure_time_max`, `departure_arrival_time_min`, `departure_arrival_time_max`, `currency` (default `USD`), `max_price`, `seat_type` (1 economy, 3 business), `passengers[]` (traveler-type codes: 1 adult, 2 child, 3 infant on lap, 4 infant in seat), `limit` (default 10), `use_fallback` (default false - slower but better on hard routes), `use_ext_proxy` (default true).
+One-way optional parameters: `max_stops`, `sort_type` (`Overall` \| `Price` \| `Duration`), `airline_codes[]`, `exclude_airline_codes[]`, `departure_time_min`, `departure_time_max`, `departure_arrival_time_min`, `departure_arrival_time_max`, `currency` (default `USD`), `max_price`, `seat_type` (1 economy, 3 business), `passengers[]` (traveler-type codes: 1 adult, 2 child, 3 infant on lap, 4 infant in seat), `limit` (default 10), `use_fallback` (accepted but **currently has no effect - leave it out**; see Common Pitfalls), `strict` (default false - return HTTP 503 instead of a misleading `[]` when the search did not complete), `use_ext_proxy` (default true).
 
-Round-trip optional parameters: `max_departure_stops`, `max_return_stops`, `sort_type`, `departure_airline_codes[]`, `return_airline_codes[]`, `departure_exclude_airline_codes[]`, `return_exclude_airline_codes[]`, `departure_departure_time_min/max`, `departure_arrival_time_min/max`, `return_departure_time_min/max`, `return_arrival_time_min/max`, `currency`, `max_price`, `seat_type`, `passengers[]`, `limit`, `use_fallback`, `use_ext_proxy`.
+Round-trip optional parameters: `max_departure_stops`, `max_return_stops`, `sort_type`, `departure_airline_codes[]`, `return_airline_codes[]`, `departure_exclude_airline_codes[]`, `return_exclude_airline_codes[]`, `departure_departure_time_min/max`, `departure_arrival_time_min/max`, `return_departure_time_min/max`, `return_arrival_time_min/max`, `currency`, `max_price`, `seat_type`, `passengers[]`, `limit`, `use_fallback` (no effect - see Common Pitfalls), `strict`, `use_ext_proxy`.
 
 One-way item fields: `price_range_in_relation_to_other_periods`, `price_insights_low`, `price_insights_high`, `from_airport`, `to_airport`, `departure_date`, `price`, `price_as_number`, `duration`, `duration_seconds`, `buy_link`, `airline`, `stops`, `stops_info`, `departure_description`, `arrival_description`.
 
@@ -86,7 +87,7 @@ Round-trip item fields: `price_range_in_relation_to_other_periods`, `price_insig
 ```bash
 export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
 
-# One-way flights (sort the result yourself - see the sort_type defect below)
+# One-way flights (sort_type is honoured on both endpoints)
 curl -sS -X POST "https://google-flights-live-api.p.rapidapi.com/api/google_flights/oneway/v1" \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
   -H "x-rapidapi-host: google-flights-live-api.p.rapidapi.com" \
@@ -96,7 +97,7 @@ curl -sS -X POST "https://google-flights-live-api.p.rapidapi.com/api/google_flig
 ```
 
 ```bash
-# Round-trip flights (sort_type IS honoured here)
+# Round-trip flights
 curl -sS -X POST "https://google-flights-live-api.p.rapidapi.com/api/google_flights/roundtrip/v1" \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
   -H "x-rapidapi-host: google-flights-live-api.p.rapidapi.com" \
@@ -149,24 +150,55 @@ If an MCP server is available, do not write that loop. Both MCP tools take a dat
 |---|---|---|
 | One-way search | `search_oneway_flights` | `POST /api/google_flights/oneway/v1` |
 | Round-trip search | `search_roundtrip_flights` | `POST /api/google_flights/roundtrip/v1` |
-| Anything hotels | none - no hotels MCP server exists | `POST /search`, `POST /hotel_by_name` |
+| Hotel search | `search_hotels` | `POST /search` |
+| One named hotel | `find_hotel_by_name` | `POST /hotel_by_name` |
 
-|  | Paid `google-flights-mcp.flightpowers.com/mcp` | Free `google-flights-lulu.flightpowers.com/mcp` |
+|  | Ad-free `flights.` / `hotels.flightpowers.com/mcp` | Free `google-flights-lulu.flightpowers.com/mcp` |
 |---|---|---|
-| Ads | none | one disclosed sponsored card per result |
+| Ads | none | one disclosed sponsored card per response |
 | Key | caller's own RapidAPI key | none needed |
-| Fan-out cap | 30 per call (60 max) | 15 per call |
+| Per-call search cap | 30 date x destination combinations by default; `max_searches` raises it to a hard maximum of 60 | 15, evenly sampled beyond that |
+| Daily budget | the caller's own plan | shared across all users |
 | Spend reporting | `api_usage` in every response | n/a |
+| Hotels | search and by-name, plus `price_as_seen_from` and `filters` | search and by-name |
 | Directory-listable | yes | no - ads are banned by Anthropic, OpenAI, and the official MCP registry |
 
 When the paid server returns `api_usage`, surface it to the user rather than hiding it.
 
 ## Errors and Non-Answers
 
-- `[]` with HTTP 200 is the "no flights on this route and date" answer. It is not an error and not a 404. Report it as an answer.
+- `[]` with HTTP 200 means "no flights on this route and date" **only when the search completed**. Read the `X-Search-Status` response header first: `ok` and `empty` are answers, `degraded` means the search did not complete and the empty array says nothing about flight availability, and `partial` means the list is real but knowingly short. See "Search Outcome Headers" below.
 - `available: false` with null price fields from `/hotel_by_name` means sold out for those dates. Also a valid answer.
 - There is no documented per-endpoint error-code table. On any non-200, report the status and body verbatim, check that the key is subscribed to that specific API on RapidAPI, and stop - do not retry in a loop, because retries are billed.
-- On a hard or thin route that returns nothing, one retry with `use_fallback: true` is justified. It is slower. Say you are spending a second request before you spend it.
+- A `degraded` search is worth one announced retry - that is a second billed request, so say so before spending it. A genuine `empty` is not worth retrying: the answer will not change.
+
+## Search Outcome Headers
+
+Every flights response carries the outcome of the search in headers, so an empty body is
+never ambiguous.
+
+| Header | Meaning |
+|---|---|
+| `X-Search-Status` | `ok` \| `empty` \| `partial` \| `degraded` |
+| `X-Search-Reason` | what went wrong on some attempt - `blocked_page`, `unrecognized_page`, `unreadable_prices`, `upstream_timeout`, `upstream_connection`, `parse_error`, `search_truncated`, `upstream_status_<code>` and others. It records the FIRST failure, so it can appear on a response a retry recovered. Read `X-Search-Status`, not this, to decide whether you got an answer |
+| `X-Search-Results`, `X-Search-Attempts`, `X-Search-Combinations` | how much work the search did |
+
+- **`ok`** - results returned and the array is complete.
+- **`empty`** - the search completed and Google genuinely has nothing for that route and
+  date. The empty array IS the answer; retrying is a wasted billed request.
+- **`partial`** - real, usable results, knowingly short. Some rows or some combinations
+  could not be delivered.
+- **`degraded`** - the search did not complete. The empty array says nothing about flight
+  availability. Do not report "no flights". Retry once; nothing was booked or changed.
+
+Unreadable pages are retried automatically, and a page that genuinely says "no flights" is
+never retried, so a real empty result comes back as fast as it always did. Sending
+`"strict": true` turns a `degraded` search into an HTTP 503 with an explanatory body
+instead of a misleading `[]`.
+
+The MCP servers read these headers on the caller's behalf: when part of a search did not
+complete, the tool result says so in words rather than returning a short list that looks
+complete.
 
 ## Hard Rules
 
@@ -180,10 +212,9 @@ When the paid server returns `api_usage`, surface it to the user rather than hid
 
 ## Common Pitfalls
 
-- **An empty array is not an error.** Do not re-run the identical call, do not silently widen the search, and do not apologise for a bug. The one exception is a single announced `use_fallback: true` retry on a plausible route (see above), which is a second billed request. Say "no results for that route on that date" and offer nearby dates as a new, separately billed search.
-- **`sort_type` is silently dropped on one-way searches.** It is accepted by the schema but not forwarded (`api_lambda.py` builds `OneWayInput` without it); it does work on round-trip. Sort one-way results client-side and never tell the user the API sorted them.
+- **An empty array is not automatically "no flights".** Check `X-Search-Status` before you report a route as empty. On `ok`/`empty`, say "no results for that route on that date" and offer nearby dates as a new, separately billed search - do not re-run the identical call. On `degraded`, the search did not complete: never tell the user there are no flights, and retry once, announced.
+- **`use_fallback` currently does nothing.** It is accepted by the schema, but it selects a second, independent flight-data source that is not switched on for this API, so none of its values changes a search today. It never made the API "wait longer for Google" - older documentation that said so was wrong. Leave it out. Automatic retries and the outcome headers are always on and are unaffected by it.
 - **A sold-out hotel returns `available: false`, not an error.** Report it as sold out for those dates and offer alternatives, rather than re-calling the endpoint.
-- **Hard routes need `use_fallback: true`.** It defaults to false and is slower; reach for it once when a plausible route comes back empty, not on every call.
 - **Every combination is a billed request.** Date ranges, destination lists, and passenger variants multiply. Count the calls, quote the count, and use the MCP range parameters when they are available.
 - **Two separate RapidAPI subscriptions.** A key subscribed to the flights API is not automatically subscribed to the hotels API, and the `x-rapidapi-host` header must match the host being called.
 

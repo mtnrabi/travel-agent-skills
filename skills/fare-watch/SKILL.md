@@ -103,9 +103,10 @@ On the hosted MCP, a whole window is one call: pass `departure_date_from` / `dep
 
 ## Common Pitfalls
 
-- **An empty array is not an error.** `[]` with HTTP 200 means "no flights on this route and date". It is not a price of zero and not a drop. Record the check as a miss with `price_as_number: null` and do not retry in a tight loop — every retry is billed.
-- **`sort_type` is silently dropped on one-way searches.** It is accepted by the schema but not forwarded (it does work on round-trip). Never assume the first item is the cheapest on one-way; take the minimum of `price_as_number` client-side, or your "drop" is just result ordering.
-- **Hard or thin routes can come back empty on the default path.** Retry once with `use_fallback: true` (slower, better on hard routes) before recording a miss. That retry is a second billed request, so do it once — not on every scheduled check.
+- **An empty array is not an error, and not always an answer.** `[]` with HTTP 200 means "no flights on this route and date" only when `X-Search-Status` is `ok` or `empty`. It is never a price of zero and never a drop. Record that check as a miss with `price_as_number: null` and do not retry in a tight loop — every retry is billed.
+- **A `degraded` search must never be recorded as a data point.** The search did not complete, so the empty result says nothing about the fare. Writing it into the history as a miss corrupts every future delta; writing it in as a drop triggers a false alert. Record it as a skipped check, or retry once.
+- **`sort_type` is honoured on both endpoints now.** Even so, never assume the first item is the cheapest: take the minimum of `price_as_number` client-side, or your "drop" is just result ordering.
+- **`use_fallback` currently does nothing** — accepted by the schema, but the second data source behind it is not switched on for this API. Do not add it to a scheduled check; it costs a request and changes nothing.
 - **Every combination is a billed request.** One route × one date × one passenger set × one cabin = one request. A daily watch on 3 routes × 4 dates is 12 requests a day, about 360 a month. State that cost before the watch starts, never after.
 - **A sold-out hotel is `available: false`, not a failure.** If the watch also tracks a room via `POST /hotel_by_name`, sold out returns `available: false` with null price fields. Record it as unavailable; it is a valid answer and it is not a price drop.
 
