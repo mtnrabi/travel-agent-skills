@@ -80,10 +80,10 @@ On the hosted MCP, one user intent is one tool call: pass `departure_date_from` 
 
 ## Common Pitfalls
 
-- **An empty array is not an error.** The flights endpoints return `[]` with HTTP 200 when nothing is found. Write "no flights returned for this route and date" into the brief as a real finding; do not present it as an outage and do not retry in a loop.
+- **An empty array is not an error — but say which kind of empty it is.** The flights endpoints return `[]` with HTTP 200. When `X-Search-Status` is `ok` or `empty`, write "no flights returned for this route and date" into the brief as a real finding, without retrying in a loop. When it is `degraded`, the search did not complete: that option is *unchecked*, not unavailable, and a brief that silently downgrades it to "no options" is telling the client something untrue.
 - **A sold-out hotel is `available: false` with null price fields**, which is a valid answer from `POST /hotel_by_name`. Put it in the table as "sold out for these dates" rather than dropping the row silently — the client asked about that property.
-- **`sort_type` is accepted on one-way but is not forwarded** (a known defect; it does work on round-trip). Never let API result order become the table order. Sort on `price_as_number` / `total_price_as_number` yourself, or the "cheapest" row in the brief will be wrong.
-- **Hard or thin routes need `use_fallback: true`** (default `false`, slower) before you write "no options exist". Try it once on the empty search, not on every option in the brief.
+- **Never let API result order become the table order.** `sort_type` is honoured on both endpoints, but a brief almost always merges several searches, and nothing sorts across them. Sort on `price_as_number` / `total_price_as_number` yourself, or the "cheapest" row in the brief will be wrong.
+- **`use_fallback` currently does nothing** — it is accepted but selects a data source that is not switched on for this API. Before writing "no options exist", check `X-Search-Status` instead.
 - **Every combination is a billed request.** One route × one date × one cabin × one passenger set = one request, and each hotel in the shortlist is another. Give the request count before rebuilding a brief, never after.
 - **Never rebuild a brief from prices quoted earlier in the conversation.** Fares go stale in minutes; a reformatted old number reads as a live quote and is the one failure a client will notice.
 

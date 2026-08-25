@@ -105,11 +105,16 @@ Related rules that have bitten us:
   "reuse the results from earlier in the conversation" is a bug. Always re-fetch
   and always stamp the result with when it was fetched.
 - **An empty `[]` is a valid answer** — "no flights on this route and date" — and
-  arrives as HTTP 200. Do not teach agents to retry it or to treat it as an error.
-  Same for a hotel returning `available: false`.
-- **Document known defects instead of quietly working around them.** Example:
-  `sort_type` is accepted by the schema but is not forwarded on one-way searches,
-  so a one-way skill must sort client-side and say so.
+  arrives as HTTP 200, **but only when `X-Search-Status` is `ok` or `empty`**. A
+  `degraded` status means the search did not complete and the empty array says nothing
+  about availability. Do not teach agents to retry a genuine empty, and do not teach
+  them to report a degraded one as "no flights". Same for a hotel returning
+  `available: false`, which is a real answer.
+- **Document known defects instead of quietly working around them**, and delete the
+  entry once the defect is fixed — a stale warning makes agents work around a problem
+  that no longer exists. Current live example: `use_fallback` is accepted by the schema
+  but selects a second data source that is not switched on, so it has no effect and a
+  skill must not spend a billed retry on it.
 - **Never present a fare as booked or guaranteed.** Surface the `buy_link` and
   let the user confirm the live price on the booking page.
 - **Never commit a key.** No `x-rapidapi-key` value, token, publisher id, or
