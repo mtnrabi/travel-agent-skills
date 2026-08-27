@@ -16,7 +16,7 @@ Answers "when is it cheapest to fly X to Y" — and, for round trips, "how long 
 | Cheapest one-way departure date | `POST /api/google_flights/oneway/v1` | `search_oneway_flights` |
 | Cheapest round-trip departure date / trip length | `POST /api/google_flights/roundtrip/v1` | `search_roundtrip_flights` |
 
-REST host: `google-flights-live-api.p.rapidapi.com`. MCP servers: `https://google-flights-mcp.flightpowers.com/mcp` (paid, ad-free, caller's own RapidAPI key, fan-out cap 30 per call and 60 max, reports `api_usage` in every response) and `https://google-flights-lulu.flightpowers.com/mcp` (free, ad-supported, no key, fan-out cap 15 per call).
+REST host: `google-flights-live-api.p.rapidapi.com`. MCP servers: `https://flights.flightpowers.com/mcp` (paid, ad-free, caller's own RapidAPI key, fan-out cap 30 per call and 60 max, reports `api_usage` in every response) and `https://google-flights-lulu.flightpowers.com/mcp` (free, ad-supported, no key, fan-out cap 15 per call).
 
 ## Workflow
 

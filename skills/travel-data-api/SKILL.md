@@ -37,7 +37,7 @@ x-rapidapi-host: google-flights-live-api.p.rapidapi.com   # or booking-live-api.
 The paid MCP server accepts the key three ways: the `x-rapidapi-key` header (preferred), a `?rapidapi_key=` query parameter on the URL, or an API-key field if the client offers one. Install it with:
 
 ```bash
-claude mcp add --transport http google-flights https://google-flights-mcp.flightpowers.com/mcp --header "x-rapidapi-key: YOUR_RAPIDAPI_KEY"
+claude mcp add --transport http google-flights https://flights.flightpowers.com/mcp --header "x-rapidapi-key: YOUR_RAPIDAPI_KEY"
 ```
 
 Never print, log, echo, or commit the key. Do not ask the user for a key unless a live call is required and none is configured.
