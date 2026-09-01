@@ -1,0 +1,88 @@
+# Travel Agent Skills
+
+> Agent skills for live flight and hotel pricing with Google's low|typical|high verdict
+
+## Product
+
+FlightPowers Travel Agent Skills — eight prompt-driven workflows for Claude, Cursor, and any agent runtime that reads a skills directory. Built on two independent real-time APIs: Google Flights Live API and Booking Live API, both available on RapidAPI.
+
+Not affiliated with, endorsed by, or sponsored by Google or Booking.com.
+
+## What it does
+
+Gives your agent the data and the workflow to answer real travel questions:
+
+- **Cheapest dates**: "When should I fly Berlin to Paris in September?" → one call searches five dates, ranked by price, each with Google's `low | typical | high` verdict
+- **Destination compare**: "Somewhere warm under $400 in October from JFK" → fan out to multiple cities in one search
+- **Trip planner**: "7 nights in Lisbon under $2000 for two, hotel needs free cancellation" → aligned flights + hotels, totalled per person
+- **Fare watch**: Track one route over time, alert only on a meaningful drop
+- **Hotel search**: Real-time Booking.com availability with 24 filters
+- **Rate parity monitor**: Price the same hotel as a resident of several countries would see it
+
+Every fare carries `price_insights_low`, `price_insights_high`, and `price_range_in_relation_to_other_periods` — Google's own historical band for that route and period. That is the difference between an agent that says "$49" and one that says "$49 is low for this route — book it, don't wait."
+
+## Install (60 seconds)
+
+### Free server (no key needed)
+
+```bash
+claude mcp add --transport http flightpowers https://google-flights-lulu.flightpowers.com/mcp
+```
+
+Four tools (one-way flights, round-trip, hotel search, hotel by name) load instantly. The free server is ad-supported: one disclosed sponsored card per response.
+
+### Ad-free servers (your own RapidAPI key)
+
+```bash
+# Get a key at https://rapidapi.com/mtnrabi/api/google-flights-live-api
+# Same key for hotels at https://rapidapi.com/mtnrabi/api/booking-live-api
+
+claude mcp add --transport http flights https://flights.flightpowers.com/mcp \
+  --header "x-rapidapi-key: YOUR_RAPIDAPI_KEY"
+
+claude mcp add --transport http hotels https://hotels.flightpowers.com/mcp \
+  --header "x-rapidapi-key: YOUR_RAPIDAPI_KEY"
+```
+
+### Skills (prompt workflows)
+
+```bash
+# Claude Code plugin
+claude plugin marketplace add mtnrabi/travel-agent-skills
+claude plugin install travel-agent-skills@travel-agent-skills
+
+# Or any agent with a skills directory
+git clone https://github.com/mtnrabi/travel-agent-skills.git
+cp -r travel-agent-skills/skills/* ~/.claude/skills/
+```
+
+## APIs and MCPs
+
+| Product | What | Where |
+|---|---|---|
+| Google Flights Live API | Real-time airfares with Google's price insights | https://rapidapi.com/mtnrabi/api/google-flights-live-api |
+| Booking Live API | Real-time hotel availability and nightly rates | https://rapidapi.com/mtnrabi/api/booking-live-api |
+| Flights MCP (ad-free) | Hosted MCP server, billed to your RapidAPI key | https://flights.flightpowers.com/mcp |
+| Hotels MCP (ad-free) | Hosted MCP server, billed to your RapidAPI key | https://hotels.flightpowers.com/mcp |
+| Free MCP (ad-supported) | Flights + hotels, no key needed, one disclosed ad per response | https://google-flights-lulu.flightpowers.com/mcp |
+
+## Documentation
+
+- Full README: https://github.com/mtnrabi/travel-agent-skills/blob/main/README.md
+- Skills reference: https://github.com/mtnrabi/travel-agent-skills/tree/main/skills
+- API reference: https://github.com/mtnrabi/travel-agent-skills/blob/main/skills/travel-data-api/SKILL.md
+- Homepage: https://flightpowers.com
+
+## Design rules
+
+1. Prefer MCP tools when available; fall back to REST otherwise
+2. Say what a call costs before making it — every billed request is the user's money
+3. Check `X-Search-Status` (REST) or the tool's outcome note (MCP) before reporting a route as empty
+4. Never cache or reuse a fare from earlier in the conversation — always fetch fresh
+5. Lead with the answer, then the evidence
+6. Never print, log, or commit an API key
+7. No invented numbers — there are no uptime, latency, user-count or revenue claims anywhere in this repo
+
+## License
+
+MIT — see https://github.com/mtnrabi/travel-agent-skills/blob/main/LICENSE

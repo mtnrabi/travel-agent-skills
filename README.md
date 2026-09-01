@@ -2,6 +2,17 @@
 
 **Give your agent live flight and hotel prices — every fare carrying Google's own `low | typical | high` verdict and a bookable link — so it can tell someone whether a price is worth taking, not just what the price is.**
 
+## Quick Links
+
+- **Homepage**: [flightpowers.com](https://flightpowers.com)
+- **Google Flights Live API**: [rapidapi.com/mtnrabi/api/google-flights-live-api](https://rapidapi.com/mtnrabi/api/google-flights-live-api)
+- **Booking Live API**: [rapidapi.com/mtnrabi/api/booking-live-api](https://rapidapi.com/mtnrabi/api/booking-live-api)
+- **GitHub**: [github.com/mtnrabi/travel-agent-skills](https://github.com/mtnrabi/travel-agent-skills)
+
+---
+
+## 60-Second Install
+
 Free, no API key, no signup:
 
 ```bash
@@ -179,12 +190,12 @@ The free server carries ads, so it is deliberately not listed in any MCP directo
 
 ## Or call the REST API directly
 
-Both APIs are billed through RapidAPI on your own key, and the same key works for both once you subscribe to each. Subscribe to whichever you need.
+Both APIs are published on RapidAPI by [mtnrabi](https://rapidapi.com/mtnrabi) and billed on your own key. The same key works for both once you subscribe to each.
 
-| API | What it returns | Sign up |
+| API | What it returns | RapidAPI listing |
 |---|---|---|
-| Google Flights Live API | real-time flight fares, one-way and round-trip | https://rapidapi.com/mtnrabi/api/google-flights-live-api |
-| Booking Live API | real-time hotel availability and nightly rates | https://rapidapi.com/mtnrabi/api/booking-live-api |
+| **Google Flights Live API** | Real-time flight fares with Google's `low\|typical\|high` verdict, one-way and round-trip | **[rapidapi.com/mtnrabi/api/google-flights-live-api](https://rapidapi.com/mtnrabi/api/google-flights-live-api)** |
+| **Booking Live API** | Real-time hotel availability and nightly rates with per-country pricing | **[rapidapi.com/mtnrabi/api/booking-live-api](https://rapidapi.com/mtnrabi/api/booking-live-api)** |
 
 ```bash
 cp .env.example .env    # then paste your key into RAPIDAPI_KEY
