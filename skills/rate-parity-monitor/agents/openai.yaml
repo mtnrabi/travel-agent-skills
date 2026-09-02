@@ -1,3 +1,3 @@
 interface:
   display_name: "Rate Parity Monitor"
-  short_description: "Detect hotel geo-pricing and rate-parity gaps by pricing the same hotel and dates from different countries via proxy_country."
+  short_description: "Price one named hotel and the same dates from several countries via proxy_country, sampling each country a few times so only a gap that holds across the samples is reported."

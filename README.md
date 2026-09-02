@@ -113,7 +113,7 @@ travel-data-api                 hub — auth, hosts, endpoints, response fields,
 | `trip-planner` | price a named trip end to end: "7 nights in Lisbon under $2000" | aligned check-in/check-out, round-trip flights, matching hotels, combined per-person total vs. the cap |
 | `fare-watch` | track one route's price over repeated checks and alert only on a meaningful drop | live price, `low`/`typical`/`high` verdict, Google's historical band, `checked_at`, delta vs. your stored history |
 | `hotel-search` | find hotels by city, neighborhood or landmark, or price one named property | `name`, `price_string`, `review_score`, `room_type`, `location`, `link` |
-| `rate-parity-monitor` | see whether the same hotel is cheaper booked from another country | per-market table with the country each price was seen from, per-night rate in one currency, spread vs. cheapest market, breach-vs-noise verdict |
+| `rate-parity-monitor` | see whether one named hotel is cheaper booked from another country | per-market table with the country each price was seen from, several samples per country, per-night rate in one currency, gap vs. cheapest market, and a verdict that only counts a gap that holds across the samples |
 | `travel-brief` | turn results into something you can send a client | recommendation → table → verdict → booking links → checked-at line |
 
 Skills are named by the job, not by the endpoint. Two flight endpoints and two hotel endpoints produce seven workflows, because "which day is cheapest" and "where should I go" are different questions to a user and identical questions to an API.
@@ -124,7 +124,7 @@ Other prompts these are built for:
 Where can I go from JFK for under $400 in late October? Somewhere warm.
 Watch BER→LHR for the 14th and ping me if it drops below $90.
 Plan a week in Rome in May for two, £1800 all in, hotel needs free cancellation.
-Is the Hilton Paris Opera cheaper booked from Germany than from the US, same dates?
+Is the Hotel Gracery Shinjuku cheaper booked from Japan than from Germany, same dates?
 Write up the Lisbon options for my client with a table and booking links.
 ```
 
@@ -213,7 +213,7 @@ Prefer no-code or scheduled batch runs? The same data ships as Apify actors: [fl
 
 - **Google's own verdict, not just a number.** `price_insights_low`, `price_insights_high` and `price_range_in_relation_to_other_periods` give the historical band for that route and period plus a `low | typical | high` rating. Every flight skill leads with the verdict.
 - **Round-trip is a real paired-leg search**, not two one-ways stapled together: one object per itinerary with a combined total, both legs already matched, and one `buy_link` for the trip.
-- **Per-country hotel pricing.** `price_as_seen_from` on the ad-free hotels server (`proxy_country` on REST) routes the request through a residential proxy in that country, so the same hotel and dates can be priced as a shopper in `us`, `de` or `il` would see them. That is what makes `rate-parity-monitor` possible.
+- **Per-country hotel pricing.** `price_as_seen_from` on the ad-free hotels server (`proxy_country` on REST) routes the request through a residential proxy in that country, so you can check the same room on the same dates as a resident of `de`, `jp` or `il` would be quoted it. Rates move, so sample each country a few times before you call a gap real, and expect some properties to come back priced the same everywhere. That is what `rate-parity-monitor` is built to do properly.
 - **An empty result tells you which kind of empty it is.** See below — it is the failure mode that quietly poisons every travel agent built on a scraper.
 
 ### Empty is not always empty

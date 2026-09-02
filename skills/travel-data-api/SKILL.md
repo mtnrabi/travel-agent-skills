@@ -80,7 +80,7 @@ Round-trip item fields: `price_range_in_relation_to_other_periods`, `price_insig
 
 `filters[]` values: `free_cancellation`, `breakfast_included`, `breakfast_and_lunch`, `breakfast_and_dinner`, `all_meals_included`, `all_inclusive`, `free_wifi`, `swimming_pool`, `gym`, `parking`, `front_desk_24h`, `review_score_7`, `review_score_8`, `review_score_9`, `private_bathroom`, `air_conditioning`, `stars_3`, `stars_4`, `stars_5`, `pets_allowed`, `adults_only`, `sauna`, `very_good_breakfast`, `accepts_online_payment`.
 
-**Lead with `proxy_country`.** It routes the request through a residential proxy in that country, so the same hotel and dates can be priced as a user in `us`, `de`, or `il` would see them. That makes rate-parity and geo-pricing monitoring possible. Nothing else on either marketplace exposes it.
+**Lead with `proxy_country`.** It routes the request through a residential proxy in that country, so the same hotel and dates can be priced as a resident of `de`, `jp`, or `il` would be quoted them. That makes rate-parity and geo-pricing monitoring possible, and nothing else on either marketplace exposes it. Two things to keep straight: it is an INPUT parameter only, and the response carries no country field, so record which country you asked for yourself; and rates move between identical calls, so sample each country a few times before calling a gap real. `rate-parity-monitor` has the full procedure.
 
 ## Runnable curl
 

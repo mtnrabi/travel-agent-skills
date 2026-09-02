@@ -104,6 +104,13 @@ Related rules that have bitten us:
 - **Never cache or reuse a fare.** Fares go stale in minutes. A skill that says
   "reuse the results from earlier in the conversation" is a bug. Always re-fetch
   and always stamp the result with when it was fetched.
+- **One sample is not a comparison.** Rates and fares move between identical
+  calls, so any skill that compares two variants (two `proxy_country` values, two
+  currencies, two dates) must sample each side more than once and report a
+  difference only when it is larger than the movement inside one side. A skill
+  that loops a parameter once per value and prints the differences will
+  manufacture findings. Compare a named property, never "the first result": the
+  order of `properties[]` is not stable across identical requests.
 - **An empty `[]` is a valid answer** — "no flights on this route and date" — and
   arrives as HTTP 200, **but only when `X-Search-Status` is `ok` or `empty`**. A
   `degraded` status means the search did not complete and the empty array says nothing
