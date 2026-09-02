@@ -12,7 +12,7 @@
     },
     {
       "title": "Fare and Rate Monitoring",
-      "description": "Re-check one pinned route over time for a book-now-or-wait verdict, or price the same hotel and dates as a resident of several countries would see them via proxy_country to expose rate-parity gaps. Every check is a fresh live call: fares go stale in minutes and are never reused.",
+      "description": "Re-check one pinned route over time for a book-now-or-wait verdict, or price one named hotel and the same dates as a resident of several countries would see them via proxy_country, sampling each country a few times so only a gap that holds is reported. Every check is a fresh live call: rates go stale in minutes and are never reused.",
       "skills": [
         "fare-watch",
         "rate-parity-monitor"
