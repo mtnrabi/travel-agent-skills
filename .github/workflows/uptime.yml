@@ -2,17 +2,24 @@
 # (MCP Growth Playbook, tactic 5), and a remote MCP server fails silently:
 # nobody reports it, they just uninstall. This is the check that notices.
 #
-# It probes the two things that can break independently -- the HTTP surface
-# and the MCP protocol handshake -- because /health can answer 200 while the
-# session manager is dead and every tools/list returns 500.
+# It probes the MCP protocol handshake, because /health can answer 200 while
+# the session manager is dead and every tools/list returns 500 -- initialize
+# strictly dominates a plain /health check (it proves the HTTP surface *and*
+# the session manager), so that is the only request this workflow makes.
 name: uptime
 
 on:
   schedule:
-    # Every 15 minutes. GitHub queues scheduled runs under load, so treat the
-    # cadence as a floor, not a guarantee.
-    - cron: '*/15 * * * *'
+    # Every 30 minutes. GitHub queues scheduled runs under load, so treat the
+    # cadence as a floor, not a guarantee. (Was */15 with a separate /health
+    # step; halved to */30 with one request/server to cut Vercel cold-start
+    # invocations -- see state/gtm/mcp-cold-start-2026-09-03.md in api-growth.)
+    - cron: '*/30 * * * *'
   workflow_dispatch:
+
+concurrency:
+  group: uptime-probe
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -30,18 +37,12 @@ jobs:
           - name: free
             base: https://google-flights-lulu.flightpowers.com
     steps:
-      - name: health
-        run: |
-          code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 20 "${{ matrix.base }}/health")
-          echo "GET /health -> $code"
-          cat /tmp/body
-          test "$code" = "200"
-
       - name: mcp handshake
         run: |
           # initialize is the cheapest call that proves the session manager
           # started. A server whose lifespan never ran answers 500 here while
-          # /health still answers 200.
+          # /health would still answer 200 -- so this one request stands in
+          # for the health check too.
           code=$(curl -s -o /tmp/init -w '%{http_code}' --max-time 30 -X POST \
             -H 'content-type: application/json' \
             -H 'accept: application/json, text/event-stream' \
