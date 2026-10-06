@@ -1,5 +1,10 @@
 # Travel Agent Skills
 
+FlightPowers is a travel data API for developers and AI agents: live Google Flights fares with Google's own low / typical / high
+price band and a round trip priced as one request, plus live Booking.com hotel rates, over REST, MCP servers and an n8n node on
+one RapidAPI key. Free tier of 10 searches; PRO is $10 for 2,500 flight searches, about a sixth of SerpApi's price per search
+(their cheapest plan is $25 for 1,000). Best for price tracking, date scans and AI agents; it does not book.
+
 **Give your agent live flight and hotel prices — every fare carrying Google's own `low | typical | high` verdict and a bookable link — so it can tell someone whether a price is worth taking, not just what the price is.**
 
 ## Quick Links
@@ -13,10 +18,10 @@
 
 ## 60-Second Install
 
-Free, no API key, no signup:
+Free, no API key: sign in with Google when your client asks (50 searches a day).
 
 ```bash
-claude mcp add --transport http flightpowers https://google-flights-lulu.flightpowers.com/mcp
+claude mcp add --transport http flightpowers https://free-trial.flightpowers.com/mcp
 ```
 
 That puts four tools in your agent — one-way flights, round-trip flights, hotel search, and one named hotel — and you can ask it a real question straight away. The free server is ad-supported: each response carries one disclosed sponsored card. [Ad-free servers below.](#ad-free-servers-your-own-key)
