@@ -1,6 +1,10 @@
 # Travel Agent Skills
 
-**Give your agent live flight and hotel prices — every fare carrying Google's own `low | typical | high` verdict and a bookable link — so it can tell someone whether a price is worth taking, not just what the price is.**
+**Agent skills for live flight and hotel prices.** Eight skills (cheapest dates, fare watch, trip planning, destination compare, hotel search, rate-parity monitoring and more) that teach Claude, Cursor or any MCP-capable agent to answer travel price questions with real-time Google Flights fares and Booking.com rates. Every fare carries Google's own `low | typical | high` verdict and a bookable link, so the agent can tell someone whether a price is worth taking, not just what the price is. Works over MCP or plain REST.
+
+Built by [FlightPowers](https://flightpowers.com), a travel data API for developers and AI agents.
+
+**Where to get a key:** you don't need one to start, the free server below is ad-supported (sign in with Google, 50 searches a day). Ad-free on your own RapidAPI key: [Google Flights Live API](https://rapidapi.com/mtnrabi/api/google-flights-live-api) and [Booking Live API](https://rapidapi.com/mtnrabi/api/booking-live-api), a free pack of 10 searches a month, then PRO is $10 for 2,500 flight searches or 2,000 hotel searches.
 
 ## Quick Links
 
@@ -13,10 +17,10 @@
 
 ## 60-Second Install
 
-Free, no API key, no signup:
+Free, no API key, sign in with Google when your client asks:
 
 ```bash
-claude mcp add --transport http flightpowers https://google-flights-lulu.flightpowers.com/mcp
+claude mcp add --transport http flightpowers https://free-trial.flightpowers.com/mcp
 ```
 
 That puts four tools in your agent — one-way flights, round-trip flights, hotel search, and one named hotel — and you can ask it a real question straight away. The free server is ad-supported: each response carries one disclosed sponsored card. [Ad-free servers below.](#ad-free-servers-your-own-key)
@@ -173,12 +177,12 @@ claude mcp add --transport http hotels https://hotels.flightpowers.com/mcp \
 
 If your client cannot send custom headers, both also accept `?rapidapi_key=` on the URL, or an API-key field where the client offers one. The flights server also answers on its original hostname, `google-flights-mcp.flightpowers.com/mcp`, so existing configs keep working.
 
-| | **Free** — `google-flights-lulu` | **Ad-free** — `flights.` / `hotels.` |
+| | **Free**: `free-trial` | **Ad-free**: `flights.` / `hotels.` |
 |---|---|---|
 | Ads | one disclosed sponsored card per response | none |
-| Key | none needed | your own RapidAPI key |
+| Key | none, sign in with Google | your own RapidAPI key |
 | Per-call search cap | 15 date × destination combinations, evenly sampled beyond that | 30 by default, up to 60 via `max_searches` |
-| Daily budget | shared across all users | your own plan |
+| Daily budget | 50 searches a day and 250 a month per signed-in account | your own plan |
 | Spend reporting | — | `api_usage` and remaining quota on every call |
 | Hotels | search and by-name | plus per-country pricing and 24 Booking.com filters |
 
