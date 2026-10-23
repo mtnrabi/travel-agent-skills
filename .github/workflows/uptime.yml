@@ -13,7 +13,7 @@ on:
     # Every 30 minutes. GitHub queues scheduled runs under load, so treat the
     # cadence as a floor, not a guarantee. (Was */15 with a separate /health
     # step; halved to */30 with one request/server to cut Vercel cold-start
-    # invocations -- see state/gtm/mcp-cold-start-2026-09-03.md in api-growth.)
+    # invocations.)
     - cron: '*/30 * * * *'
   workflow_dispatch:
 

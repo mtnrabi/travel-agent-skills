@@ -16,7 +16,7 @@ Answers "when is it cheapest to fly X to Y" — and, for round trips, "how long 
 | Cheapest one-way departure date | `POST /api/google_flights/oneway/v1` | `search_oneway_flights` |
 | Cheapest round-trip departure date / trip length | `POST /api/google_flights/roundtrip/v1` | `search_roundtrip_flights` |
 
-REST host: `google-flights-live-api.p.rapidapi.com`. MCP servers (ad-free): `https://flights.flightpowers.com/mcp` and `https://hotels.flightpowers.com/mcp`. Sign in with Google when the client asks and the first 10 searches a day are free with no key (one search is one date x destination combination, counted across both servers; a call bigger than what is left of the day is refused before anything runs). With the caller's own RapidAPI key a call searches up to 30 combinations by default, the cap rises by itself to cover a bigger request (up to 300), `max_searches` sets it explicitly, and every response reports `api_usage`.
+REST host: `google-flights-live-api.p.rapidapi.com`. MCP servers (ad-free): `https://flights.flightpowers.com/mcp` and `https://hotels.flightpowers.com/mcp`. Sign in with Google when the client asks and the first 10 searches a day are free with no key (one search is one date x destination combination, counted across both servers; a call bigger than what is left of the day is refused before anything runs, unless `max_searches` is set, which samples it down to what is left). With the caller's own RapidAPI key a call searches up to 30 combinations by default, the cap rises by itself to cover a bigger request (up to 300), `max_searches` sets it explicitly, and every response reports `api_usage`.
 
 ## Workflow
 

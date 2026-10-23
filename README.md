@@ -69,7 +69,7 @@ Written for the model that has to choose between them. The parameter names below
 
 **You get back** one row per itinerary: `price` / `price_as_number`, `airline`, `duration` / `duration_seconds`, `stops` and `stops_info[]` (each layover airport and its duration), `departure_description` / `arrival_description`, a `buy_link` deep-linking that exact itinerary, and the three price-insight fields. Alongside them, `search_coverage` names every date actually searched.
 
-**Read `search_coverage` before you conclude anything.** With your own key a call searches up to 30 date × destination combinations by default, and the cap rises by itself to cover a bigger request (up to 300; `max_searches` sets it explicitly). Past the cap a request is not rejected, it is sampled evenly across the range and comes back with `truncated: true`. On the free sign-in allowance a request bigger than what is left of the day's 10 searches is refused before anything runs. A date missing from `departure_dates_searched` was never searched — which is not the same as having no flights.
+**Read `search_coverage` before you conclude anything.** With your own key a call searches up to 30 date × destination combinations by default, and the cap rises by itself to cover a bigger request (up to 300; `max_searches` sets it explicitly). Past the cap a request is not rejected, it is sampled evenly across the range and comes back with `truncated: true`. On the free sign-in allowance a request bigger than what is left of the day's 10 searches is refused before anything runs (or, with an explicit `max_searches`, sampled down to what is left). A date missing from `departure_dates_searched` was never searched — which is not the same as having no flights.
 
 ### `search_roundtrip_flights`
 
@@ -184,7 +184,7 @@ If your client cannot send custom headers, both also accept `?rapidapi_key=` on 
 |---|---|---|
 | Ads | none | none |
 | Daily budget | 10 searches a day per Google account, across both servers, renewing at 00:00 UTC | your own plan |
-| Per-call search cap | what is left of the day; a bigger call is refused before it runs | 30 by default, raised by itself for a bigger request, up to 300 via `max_searches` |
+| Per-call search cap | what is left of the day; a bigger call is refused before it runs, or sampled down to it when `max_searches` is set | 30 by default, raised by itself for a bigger request, up to 300 via `max_searches` |
 | Spend reporting | a `trial` block with the count and the cap | `api_usage` and remaining quota on every call |
 | Hotels | search and by-name, per-country pricing, 24 Booking.com filters | the same |
 

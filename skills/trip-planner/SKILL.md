@@ -32,8 +32,8 @@ This is an independent API that returns publicly available flight and hotel pric
 3. **State the cost before you spend it.** Every search is a billed request against the user's own key. Say "this is 2 calls — one flight search, one hotel search" up front. If you are comparing 3 date windows × 2 cities, that is 6 flight calls plus 6 hotel calls; get agreement first.
 4. **Search flights first.** The flight is the larger and least flexible number, and it sets the hotel envelope. Pass `max_price` as the flight ceiling for the WHOLE party (it is compared with the total for every passenger, not per person), `currency`, `passengers[]` (1 adult, 2 child, 3 infant on lap, 4 infant in seat), and `sort_type: "Price"`.
 5. **Align `checkin_date` / `checkout_date` to the flight, not to the request.** Read `departure_flight_arrival_description` (e.g. `"8:50 AM on Mon, Jun 1"`). On a red-eye or long-haul the outbound lands the day *after* `departure_date` — in that case `checkin_date` is the arrival day, not the departure day. Likewise if `return_flight_departure_description` is an early-morning slot, the traveller still needs the previous night, so `checkout_date` stays the return day. Recompute `nights` after this adjustment.
-6. **Compute the hotel envelope, then search hotels.** With a per-person budget `B`, the flight total for the whole party `F` = `total_price_as_number` (a round trip for two adults is priced for both), `N` nights and `A` adults sharing one room: `room_budget = (B × A) − F` and `budget_per_night = room_budget ÷ N`. Send that as `budget_per_night`, with `filters: ["free_cancellation", "review_score_8"]` so the shortlist is refundable and well-reviewed.
-7. **Combine and present.** Per-person total = `(F + hotel_stay_cost) ÷ A`. Show the gap to budget, the `price_range_in_relation_to_other_periods` verdict against `price_insights_low`/`price_insights_high`, both live links, and the timestamp of the search.
+6. **Compute the hotel envelope, then search hotels.** With a per-person budget `B`, the flight total for the whole party `F` = `total_price_as_number` (a round trip for two adults is priced for both), `N` nights and `A` adults sharing one room: `room_budget = (B × A) − F` and `budget_per_night = room_budget ÷ N`. Worked example: B = 2000, A = 2, F = 1800 (the flight ceiling below), N = 7 → room_budget 2200 → about 314 a night. Send that as `budget_per_night`, with `filters: ["free_cancellation", "review_score_8"]` so the shortlist is refundable and well-reviewed.
+7. **Combine and present.** Per-person total = `(F + hotel_stay_cost) ÷ A`, where `A` is every traveller the budget is per head of (children included if their fares are in `F`). Show the gap to budget, the `price_range_in_relation_to_other_periods` verdict against `price_insights_low`/`price_insights_high`, both live links, and the timestamp of the search.
 
 ## Search the Round-Trip Flight
 
@@ -80,7 +80,7 @@ curl -sS -X POST \
     "adults": 2,
     "children": 0,
     "currency": "USD",
-    "budget_per_night": 120,
+    "budget_per_night": 310,
     "filters": ["free_cancellation", "review_score_8"]
   }'
 ```
@@ -113,7 +113,7 @@ for WINDOW in "2027-06-19|2027-06-26" "2027-06-26|2027-07-03" "2027-07-03|2027-0
 done
 ```
 
-When an MCP client is configured, do the flight half of this in **one** `search_roundtrip_flights` call: pass `departure_date_from: "2027-06-19"`, `departure_date_to: "2027-07-03"` and `nights: 7`. The range bounds the *departure* date, not the return, so the last window in the loop above departs 2027-07-03 and returns 2027-07-10 — setting `departure_date_to` to the return date would silently price an extra window. One user intent is one tool call — never one call per date. The `nights` value you pass there is the same night count you feed to `checkin_date`/`checkout_date` on the hotel call.
+When an MCP client is configured, do the flight half of this in **one** `search_roundtrip_flights` call: pass `departure_date_from: "2027-06-19"`, `departure_date_to: "2027-07-03"` and `nights: 7`. The range bounds the *departure* date, not the return, so the last window in the loop above departs 2027-07-03 and returns 2027-07-10 — setting `departure_date_to` to the return date would silently price an extra window. One user intent is one tool call — never one call per date. That call prices every departure day in the range (15 searches here, not 3), so quote 15 before running it; on the free sign-in allowance it is more than the day's 10 and is refused, so use the 3-window REST loop or set `max_searches`. The `nights` value you pass there is the same night count you feed to `checkin_date`/`checkout_date` on the hotel call.
 
 ## Common Pitfalls
 

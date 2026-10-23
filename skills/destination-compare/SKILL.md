@@ -23,7 +23,7 @@ This skill answers open-ended "where can I go" questions: one origin, one date w
 
 1. Pin down origin, window, budget, and trip shape before calling anything. If the user gave a month ("October"), pick a concrete sub-range — a full month across 10 destinations is 310 combinations and will be truncated.
 2. Build the candidate destination list yourself, as IATA codes. The API does not suggest destinations; it prices the ones you name. Say which cities you picked and why before spending the user's money.
-3. Count the combinations (destinations x departure dates) and state the cost out loud. Cap: with the caller's own key the MCP server searches up to 30 combinations per call by default and raises that by itself for a bigger request, up to 300 (`max_searches` sets it explicitly); on the free sign-in allowance (10 searches a day, no key) a call larger than what is left of the day is refused before it runs. Past the cap the server samples evenly and sets `search_coverage.truncated`, so split into batches by theme ("Greek islands", "Balkans") rather than silently dropping cities.
+3. Count the combinations (destinations x departure dates) and state the cost out loud. Cap: with the caller's own key the MCP server searches up to 30 combinations per call by default and raises that by itself for a bigger request, up to 300 (`max_searches` sets it explicitly); on the free sign-in allowance (10 searches a day, no key) a call larger than what is left of the day is refused before it runs (or sampled down to it when `max_searches` is set). Past the cap the server samples evenly and sets `search_coverage.truncated`, so split into batches by theme ("Greek islands", "Balkans") rather than silently dropping cities.
 4. Make ONE MCP call with the whole destination list. Never loop one call per destination or per date when an MCP client is available.
 5. Rank client-side by `price_as_number` (or `total_price_as_number`), keeping the single cheapest row per destination plus its date, airline, stops and `buy_link`.
 6. Read `search_coverage` and report it. A city that returned no rows is "no fare found in this window", never "there are no flights".
@@ -63,7 +63,7 @@ With an MCP client, one call covers the whole shortlist:
 }
 ```
 
-That is 6 destinations x 3 dates = 18 combinations: 18 billed searches on the caller's own key, inside the default 30-per-call cap. On the free sign-in allowance it would be refused (more than the day's 10), so offer 3 cities x 3 dates instead. For round-trip, swap the tool for `search_roundtrip_flights` and pass `"nights": [3, 4]` instead of a return date.
+That is 6 destinations x 3 dates = 18 combinations: 18 billed searches on the caller's own key, inside the default 30-per-call cap. On the free sign-in allowance it would be refused (more than the day's 10), so offer 3 cities x 3 dates instead if the day's allowance is untouched (check `trial.remaining_today` in the last response). For round-trip, swap the tool for `search_roundtrip_flights` and pass `"nights": [3, 4]` instead of a return date.
 
 Without an MCP client, REST needs one request per destination per date. Loop explicitly and keep the per-destination minimum:
 

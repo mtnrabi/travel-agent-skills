@@ -18,7 +18,7 @@ These are independent APIs that return publicly available flight and hotel prici
 | Flights REST | `https://google-flights-live-api.p.rapidapi.com` | caller's RapidAPI key | One exact itinerary, full parameter control, or you are writing code for the user |
 | Hotels REST | `https://booking-live-api.p.rapidapi.com` | caller's RapidAPI key | Full parameter control, `proxy_country`, and the 24 `filters[]` values |
 | Flights MCP, ad-free | `https://flights.flightpowers.com/mcp` | Google sign-in (10 free searches a day), then the caller's own RapidAPI key | Flexible dates or several candidate destinations; ad-free; reports spend. Also answers on `google-flights-mcp.flightpowers.com/mcp` |
-| Hotels MCP, ad-free | `https://hotels.flightpowers.com/mcp` | Google sign-in (the same 10 a day), then the caller's own RapidAPI key | Hotel work from an MCP client; adds `price_as_seen_from` and `filters` |
+| Hotels MCP, ad-free | `https://hotels.flightpowers.com/mcp` | Google sign-in (the same 10 a day), then the caller's own RapidAPI key | Hotel work from an MCP client; has `price_as_seen_from` and `filters` |
 | Apify actor, flights | `https://apify.com/mtnrabi/google-flights-real-time-api` ($3.00 per 1,000 flight lookups) | Apify | No-code or scheduled batch runs |
 | Apify actor, hotels | `https://apify.com/mtnrabi/booking-real-time-api` ($3.70 per 1,000 hotel lookups) | Apify | No-code or scheduled batch runs |
 
@@ -40,7 +40,7 @@ claude mcp add --transport http flights https://flights.flightpowers.com/mcp
 claude mcp add --transport http hotels https://hotels.flightpowers.com/mcp
 ```
 
-In a client that supports MCP authorization (Claude, Claude Code, Cursor, ChatGPT and others), a request with no credential is answered with a sign-in: the user signs in with Google and gets **10 free searches a day with no key**, counted per Google account across both servers, renewing at 00:00 UTC. A search is one date x destination combination, so a call with a three-day range spends three; a call bigger than what is left of the day is refused before anything runs, and past the allowance the tools answer `search_status: "trial_exhausted"` with no results (not an error, and retrying does not help). To go past it, the user pastes their RapidAPI key once on the `/connect` page after signing in (`https://flights.flightpowers.com/connect`, `https://hotels.flightpowers.com/connect`); the key is then used on every call and nothing goes in the client config.
+In a client that supports MCP authorization (Claude, Claude Code, Cursor, ChatGPT and others), a request with no credential is answered with a sign-in: the user signs in with Google and gets **10 free searches a day with no key**, counted per Google account across both servers, renewing at 00:00 UTC. A search is one date x destination combination, so a call with a three-day range spends three; a call bigger than what is left of the day is refused before anything runs (unless it sets `max_searches`, which samples it down to what is left), and past the allowance the tools answer `search_status: "trial_exhausted"` with no results (not an error, and retrying does not help). To go past it, the user pastes their RapidAPI key once on the `/connect` page after signing in (`https://flights.flightpowers.com/connect`, `https://hotels.flightpowers.com/connect`); the key is then used on every call and nothing goes in the client config.
 
 A client without MCP authorization sends the key itself: the `x-rapidapi-key` header (preferred), a `?rapidapi_key=` query parameter on the URL, or an API-key field if the client offers one:
 
@@ -167,7 +167,7 @@ If an MCP server is available, do not write that loop. Both MCP tools take a dat
 |---|---|---|
 | Ads | none | none |
 | Daily budget | 10 searches per Google account per UTC day, across both servers | the caller's own RapidAPI plan |
-| Per-call search cap | what is left of the day; a bigger call is refused before it runs | 30 date x destination combinations by default, raised by itself to cover a bigger request (up to 300); `max_searches` sets it explicitly, up to 300. Past the cap the server samples evenly and sets `search_coverage.truncated` |
+| Per-call search cap | what is left of the day; a bigger call is refused before it runs (with an explicit `max_searches` it is sampled down to what is left instead) | 30 date x destination combinations by default, raised by itself to cover a bigger request (up to 300); `max_searches` sets it explicitly, up to 300. Past the cap the server samples evenly and sets `search_coverage.truncated` |
 | Spend reporting | a `trial` block with the count and the cap | `api_usage` in every response |
 | Hotels | search and by-name, plus `price_as_seen_from` and `filters` | the same |
 
