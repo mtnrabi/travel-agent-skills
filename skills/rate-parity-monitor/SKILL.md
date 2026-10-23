@@ -16,7 +16,7 @@ Two things make this harder than it looks, and the whole workflow below exists t
 
 So: fix one named property, sample every market more than once, and report a gap only when it is bigger than the movement you can see inside a single market.
 
-Use `travel-data-api` for auth, base URL, and endpoint details. Parity work runs on the hotels REST host `booking-live-api.p.rapidapi.com` with the RapidAPI header pair, or on the ad-free hotels MCP server, where `price_as_seen_from` is the same input under a different name. The fields you compare across markets are `available`, `price`, `price_string`, `room_type`, and `nights` from `POST /hotel_by_name`.
+Auth is one header, `x-rapidapi-key`, read from the `RAPIDAPI_KEY` environment variable and sent only to the FlightPowers hosts named in this file (full reference: the `travel-data-api` skill, or https://flightpowers.com/docs). Parity work runs on the hotels REST host `booking-live-api.p.rapidapi.com` with the RapidAPI header pair, or on the ad-free hotels MCP server, where `price_as_seen_from` is the same input under a different name. The fields you compare across markets are `available`, `price`, `price_string`, `room_type`, and `nights` from `POST /hotel_by_name`.
 
 ## Endpoints
 
@@ -41,7 +41,7 @@ Host: `booking-live-api.p.rapidapi.com`. Both are `POST` with a JSON body. `prox
 ## Price One Property in One Market
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 
 curl -sS -X POST "https://booking-live-api.p.rapidapi.com/hotel_by_name" \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
@@ -50,8 +50,8 @@ curl -sS -X POST "https://booking-live-api.p.rapidapi.com/hotel_by_name" \
   -d '{
     "hotel_name": "Hotel Gracery Shinjuku",
     "area": "Tokyo",
-    "checkin_date": "2026-11-10",
-    "checkout_date": "2026-11-13",
+    "checkin_date": "2027-06-22",
+    "checkout_date": "2027-06-25",
     "adults": 2,
     "children": 0,
     "currency": "USD",
@@ -66,7 +66,7 @@ Everything in the sweep below is this exact body with `proxy_country` changed, r
 There is no multi-country parameter and no repeat parameter: one country and one sample is one call. Loop the market set inside a sample loop, hold every other field constant, and keep every response, not just the last one per country.
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 
 for SAMPLE in 1 2 3; do
   for CC in de jp il gb; do
@@ -75,7 +75,7 @@ for SAMPLE in 1 2 3; do
       -H "x-rapidapi-key: $RAPIDAPI_KEY" \
       -H "x-rapidapi-host: booking-live-api.p.rapidapi.com" \
       -H "Content-Type: application/json" \
-      -d "$(printf '{"hotel_name":"Hotel Gracery Shinjuku","area":"Tokyo","checkin_date":"2026-11-10","checkout_date":"2026-11-13","adults":2,"children":0,"currency":"USD","proxy_country":"%s"}' "$CC")"
+      -d "$(printf '{"hotel_name":"Hotel Gracery Shinjuku","area":"Tokyo","checkin_date":"2027-06-22","checkout_date":"2027-06-25","adults":2,"children":0,"currency":"USD","proxy_country":"%s"}' "$CC")"
     printf '\n'
   done
 done
@@ -123,10 +123,12 @@ If the user wants a fixed reporting threshold, set it from the data rather than 
 - **Every combination is a separate billed request.** Countries times samples times properties times date windows is the user's money multiplying. State the total before the first call, never after.
 - **Never reuse, cache, or carry forward a rate.** Rates go stale in minutes, so a table assembled from calls made at different times measures elapsed time, not geography. Re-fetch the whole set for every comparison and attach the fetch timestamp to every row.
 - **No gap is a real result.** A property under a chain parity contract can return the same price from every country. Report that plainly instead of hunting for a difference until one appears.
-- **If the same audit also touches flights** (hand that work to the flight skills): an empty flight result is only "no flights" when the response header `X-Search-Status` says `ok` or `empty`; `degraded` means the search did not complete. `use_fallback` is accepted but currently has no effect, so do not spend a request on it.
+- **If the same audit also touches flights** (hand that work to the flight skills): an empty flight result is only "no flights" when the response header `X-Search-Status` says `ok` or `empty`; `degraded` means the search did not complete.
 
 ## Output Standards
 
 - Lead with the verdict, not the table: whether a gap survived the repeats, on which property and dates, how large per night, and how that compares with how much the property moved inside a single market. Then show the rows with `proxy_country`, sample number, `available`, `room_type`, `price_string`, `nights`, per-night rate, and the delta versus the cheapest market. State the fixed parameters (`currency`, `adults`, `children`, `free_cancellation`, dates) so the reader can see the comparison was controlled, name every market that returned `available: false` as inventory rather than price, and give the UTC time each call was made.
 - Say how many samples per market you took and how many calls you spent, and never present a single unrepeated sweep as evidence of anything. Every quote is indicative until the user opens the `link`; a rate is not booked until Booking.com confirms it.
 - This is an independent API that returns publicly available hotel pricing. It is not affiliated with, endorsed by, or sponsored by Booking.com, and a price difference it surfaces is an observation about publicly listed prices, not a compliance ruling.
+
+If this file names another skill from this set (travel-data-api, cheapest-dates, destination-compare, trip-planner, fare-watch, hotel-search, rate-parity-monitor, travel-brief) that is not installed, do that part of the job with the endpoints in this file.

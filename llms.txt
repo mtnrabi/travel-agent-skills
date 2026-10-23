@@ -12,7 +12,7 @@ Not affiliated with, endorsed by, or sponsored by Google or Booking.com.
 
 Gives your agent the data and the workflow to answer real travel questions:
 
-- **Cheapest dates**: "When should I fly Berlin to Paris in September?" → one call searches five dates, ranked by price, each with Google's `low | typical | high` verdict
+- **Cheapest dates**: "When should I fly Berlin to Paris in late June?" → one call searches five dates, ranked by price, each with Google's `low | typical | high` verdict
 - **Destination compare**: "Somewhere warm under $400 in October from JFK" → fan out to multiple cities in one search
 - **Trip planner**: "7 nights in Lisbon under $2000 for two, hotel needs free cancellation" → aligned flights + hotels, totalled per person
 - **Fare watch**: Track one route over time, alert only on a meaningful drop
@@ -23,15 +23,16 @@ Every fare carries `price_insights_low`, `price_insights_high`, and `price_range
 
 ## Install (60 seconds)
 
-### Free server (no key needed)
+### MCP servers (ad-free; sign in with Google, no key to start)
 
 ```bash
-claude mcp add --transport http flightpowers https://google-flights-lulu.flightpowers.com/mcp
+claude mcp add --transport http flights https://flights.flightpowers.com/mcp
+claude mcp add --transport http hotels https://hotels.flightpowers.com/mcp
 ```
 
-Four tools (one-way flights, round-trip, hotel search, hotel by name) load instantly. The free server is ad-supported: one disclosed sponsored card per response.
+Four tools (one-way flights, round-trip, hotel search, hotel by name). Signed in with Google, the first 10 searches a day are free with no key (one search = one date x destination combination, counted across both servers). After that, paste your RapidAPI key once on the /connect page (https://flights.flightpowers.com/connect), or send it as a header.
 
-### Ad-free servers (your own RapidAPI key)
+### With your own RapidAPI key as a header
 
 ```bash
 # Get a key at https://rapidapi.com/mtnrabi/api/google-flights-live-api
@@ -62,9 +63,8 @@ cp -r travel-agent-skills/skills/* ~/.claude/skills/
 |---|---|---|
 | Google Flights Live API | Real-time airfares with Google's price insights | https://rapidapi.com/mtnrabi/api/google-flights-live-api |
 | Booking Live API | Real-time hotel availability and nightly rates | https://rapidapi.com/mtnrabi/api/booking-live-api |
-| Flights MCP (ad-free) | Hosted MCP server, billed to your RapidAPI key | https://flights.flightpowers.com/mcp |
-| Hotels MCP (ad-free) | Hosted MCP server, billed to your RapidAPI key | https://hotels.flightpowers.com/mcp |
-| Free MCP (ad-supported) | Flights + hotels, no key needed, one disclosed ad per response | https://google-flights-lulu.flightpowers.com/mcp |
+| Flights MCP (ad-free) | Hosted MCP server: 10 free searches a day after Google sign-in, then your RapidAPI key | https://flights.flightpowers.com/mcp |
+| Hotels MCP (ad-free) | Hosted MCP server: same sign-in allowance, then your RapidAPI key | https://hotels.flightpowers.com/mcp |
 
 ## Documentation
 

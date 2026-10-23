@@ -119,9 +119,13 @@ Related rules that have bitten us:
   `available: false`, which is a real answer.
 - **Document known defects instead of quietly working around them**, and delete the
   entry once the defect is fixed — a stale warning makes agents work around a problem
-  that no longer exists. Current live example: `use_fallback` is accepted by the schema
-  but selects a second data source that is not switched on, so it has no effect and a
-  skill must not spend a billed retry on it.
+  that no longer exists. (Example: until 2026-10 these skills said `use_fallback` did
+  nothing; it now escalates a failed search to a second data source, and the warning had
+  to come out of every file.)
+- **Example dates stay in the future.** A flights request with a past `departure_date`
+  is refused with HTTP 422, so a runnable example with a past date teaches an agent to
+  waste a billed call. Keep example dates at least six months out and move them forward
+  when they get close.
 - **Never present a fare as booked or guaranteed.** Surface the `buy_link` and
   let the user confirm the live price on the booking page.
 - **Never commit a key.** No `x-rapidapi-key` value, token, publisher id, or

@@ -7,7 +7,7 @@ description: Track the price of one pinned flight over repeated checks - same ro
 
 ## Overview
 
-This skill turns a one-off flight search — or the rate for one named hotel on fixed dates — into a repeated check: run the identical search on a schedule, compare the live fare against Google's historical range for that route and period, and decide whether it is low, typical, or high. Use `travel-data-api` for auth, base URLs, and endpoint details. Prefer the hosted MCP tools when a client is configured. The fields this skill decides on are `price_as_number` (or `total_price_as_number` on round-trip), `price_insights_low`, `price_insights_high`, `price_range_in_relation_to_other_periods`, and `buy_link`.
+This skill turns a one-off flight search — or the rate for one named hotel on fixed dates — into a repeated check: run the identical search on a schedule, compare the live fare against Google's historical range for that route and period, and decide whether it is low, typical, or high. Auth is one header, `x-rapidapi-key`, read from the `RAPIDAPI_KEY` environment variable and sent only to the FlightPowers hosts named in this file (full reference: the `travel-data-api` skill, or https://flightpowers.com/docs). Prefer the hosted MCP tools when a client has them configured (ad-free: https://flights.flightpowers.com/mcp and https://hotels.flightpowers.com/mcp). The fields this skill decides on are `price_as_number` (or `total_price_as_number` on round-trip), `price_insights_low`, `price_insights_high`, `price_range_in_relation_to_other_periods`, and `buy_link`.
 
 **Fares are never cached.** Every check is a fresh, billed request. A price from an earlier check, an earlier message, or a stored history row is a record of the past, never an answer to "what does it cost now".
 
@@ -18,7 +18,7 @@ This skill turns a one-off flight search — or the rate for one named hotel on 
 | One-way fare on a fixed date | `POST /api/google_flights/oneway/v1` | `search_oneway_flights` |
 | Round-trip fare on fixed dates | `POST /api/google_flights/roundtrip/v1` | `search_roundtrip_flights` |
 | A window of dates in a single call | one REST call per date | either tool with `departure_date_from` / `departure_date_to` |
-| A hotel rate alongside the flight | `POST /hotel_by_name` | n/a |
+| A hotel rate alongside the flight | `POST /hotel_by_name` | `find_hotel_by_name` (hotels server) |
 
 Flights host: `google-flights-live-api.p.rapidapi.com`. Hotels host: `booking-live-api.p.rapidapi.com`.
 
@@ -34,7 +34,7 @@ Flights host: `google-flights-live-api.p.rapidapi.com`. Hotels host: `booking-li
 ## Single Check
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 
 curl -sS -X POST 'https://google-flights-live-api.p.rapidapi.com/api/google_flights/oneway/v1' \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
@@ -43,7 +43,7 @@ curl -sS -X POST 'https://google-flights-live-api.p.rapidapi.com/api/google_flig
   -d '{
         "from_airport": "BER",
         "to_airport": "CDG",
-        "departure_date": "2026-11-12",
+        "departure_date": "2027-06-24",
         "currency": "USD",
         "limit": 10
       }'
@@ -56,18 +56,18 @@ Round-trip is the same call against `/api/google_flights/roundtrip/v1` with `ret
 Run this on your schedule. It picks the cheapest item client-side, appends one history row, and prints the lowest price ever recorded for this exact search (needs `jq`).
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
-HISTORY="$HOME/.fare-watch/BER-CDG-2026-11-12.jsonl"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
+HISTORY="$HOME/.fare-watch/BER-CDG-2027-06-24.jsonl"
 mkdir -p "$(dirname "$HISTORY")"
 
 curl -sS -X POST 'https://google-flights-live-api.p.rapidapi.com/api/google_flights/oneway/v1' \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
   -H 'x-rapidapi-host: google-flights-live-api.p.rapidapi.com' \
   -H 'Content-Type: application/json' \
-  -d '{"from_airport":"BER","to_airport":"CDG","departure_date":"2026-11-12","currency":"USD","limit":10}' \
+  -d '{"from_airport":"BER","to_airport":"CDG","departure_date":"2027-06-24","currency":"USD","limit":10}' \
 | jq -c --arg checked_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '
     if length == 0 then
-      {date: "2026-11-12", price_as_number: null, checked_at: $checked_at, note: "no flights returned"}
+      {date: "2027-06-24", price_as_number: null, checked_at: $checked_at, note: "no flights returned"}
     else
       (min_by(.price_as_number)) as $best
       | {date: $best.departure_date,
@@ -86,7 +86,7 @@ jq -s 'map(select(.price_as_number != null) | .price_as_number) | min' "$HISTORY
 One history row is one line of JSON. The three required fields are:
 
 ```json
-{"date": "2026-11-12", "price_as_number": 56, "checked_at": "2026-08-16T09:00:00Z"}
+{"date": "2027-06-24", "price_as_number": 56, "checked_at": "2027-06-15T09:00:00Z"}
 ```
 
 Everything else (`verdict`, `insights_low`, `insights_high`, `airline`, `buy_link`) is optional but worth storing — the insights range can move between checks, so record it per row rather than assuming it is constant. One file per pinned search; never mix two searches into one file.
@@ -105,15 +105,17 @@ On the hosted MCP, a whole window is one call: pass `departure_date_from` / `dep
 
 - **An empty array is not an error, and not always an answer.** `[]` with HTTP 200 means "no flights on this route and date" only when `X-Search-Status` is `ok` or `empty`. It is never a price of zero and never a drop. Record that check as a miss with `price_as_number: null` and do not retry in a tight loop — every retry is billed.
 - **A `degraded` search must never be recorded as a data point.** The search did not complete, so the empty result says nothing about the fare. Writing it into the history as a miss corrupts every future delta; writing it in as a drop triggers a false alert. Record it as a skipped check, or retry once.
-- **`sort_type` is honoured on both endpoints now.** Even so, never assume the first item is the cheapest: take the minimum of `price_as_number` client-side, or your "drop" is just result ordering.
-- **`use_fallback` currently does nothing** — accepted by the schema, but the second data source behind it is not switched on for this API. Do not add it to a scheduled check; it costs a request and changes nothing.
+- **Never assume the first item is the cheapest:** take the minimum of `price_as_number` client-side, or your "drop" is just result ordering.
+- **Leave `use_fallback` at its default on a scheduled check**, so every check runs the same search the same way.
 - **Every combination is a billed request.** One route × one date × one passenger set × one cabin = one request. A daily watch on 3 routes × 4 dates is 12 requests a day, about 360 a month. State that cost before the watch starts, never after.
 - **A sold-out hotel is `available: false`, not a failure.** If the watch also tracks a room via `POST /hotel_by_name`, sold out returns `available: false` with null price fields. Record it as unavailable; it is a valid answer and it is not a price drop.
 
 ## Output Standards
 
-- Lead with the verdict and the range, not the bare number: "$209 round-trip, which is **typical** for this route — the historical range for this period is $180–$260. Checked 2026-08-16 14:02 UTC." Then the `buy_link`.
+- Lead with the verdict and the range, not the bare number: "$209 round-trip, which is **typical** for this route — the historical range for this period is $180–$260. Checked 2027-06-15 14:02 UTC." Then the `buy_link`.
 - Print `checked_at` next to every price, and say plainly that the fare was live only at that moment and can change before booking completes. Never answer "what is it now" from the history file or from an earlier message, and never present a fare as held, booked, or guaranteed.
 - On an alert, show old price → new price, the percent change, and which stored check it beat. With only one row in the history, say there is no trend yet rather than implying one.
 
 This skill uses an independent API that returns publicly available flight and hotel pricing. It is not affiliated with, endorsed by, or sponsored by Google or Booking.com.
+
+If this file names another skill from this set (travel-data-api, cheapest-dates, destination-compare, trip-planner, fare-watch, hotel-search, rate-parity-monitor, travel-brief) that is not installed, do that part of the job with the endpoints in this file.
