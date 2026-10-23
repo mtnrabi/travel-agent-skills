@@ -7,7 +7,7 @@ description: Find and price places to stay with real-time Booking.com data. POST
 
 ## Overview
 
-Two endpoints on the hotels REST API answer almost every accommodation question: `POST /search` for "what can I stay in at this destination", and `POST /hotel_by_name` for "is this exact property available and what does it cost". Use `travel-data-api` for auth, base URL, and endpoint details; prefer the hosted MCP tools when a client is configured, and otherwise run hotel work over REST with the RapidAPI header pair. Response fields you will actually see are `properties[].name`, `price`, `price_string`, `review_score`, `review_count`, `room_type`, `location`, `image_url`, `link` from `/search`, and `name`, `available`, `price`, `price_string`, `review_score`, `review_count`, `room_type`, `image_url`, `link`, `nights`, `adults`, `children` from `/hotel_by_name`.
+Two endpoints on the hotels REST API answer almost every accommodation question: `POST /search` for "what can I stay in at this destination", and `POST /hotel_by_name` for "is this exact property available and what does it cost". Auth is one header, `x-rapidapi-key`, read from the `RAPIDAPI_KEY` environment variable and sent only to the FlightPowers hosts named in this file (full reference: the `travel-data-api` skill, or https://flightpowers.com/docs); prefer the hosted MCP tools when a client has them configured (ad-free: https://flights.flightpowers.com/mcp and https://hotels.flightpowers.com/mcp), and otherwise run hotel work over REST with the RapidAPI header pair. On the hotels MCP server the same two jobs are `search_hotels` and `find_hotel_by_name`, and `proxy_country` is called `price_as_seen_from`. Response fields you will actually see are `properties[].name`, `price`, `price_string`, `review_score`, `review_count`, `room_type`, `location`, `image_url`, `link` from `/search`, and `name`, `available`, `price`, `price_string`, `review_score`, `review_count`, `room_type`, `image_url`, `link`, `nights`, `adults`, `children` from `/hotel_by_name`.
 
 ## Endpoints
 
@@ -29,7 +29,7 @@ Host: `booking-live-api.p.rapidapi.com`. Both endpoints are `POST` with a JSON b
 ## Search a Destination
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 
 curl -sS -X POST "https://booking-live-api.p.rapidapi.com/search" \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
@@ -37,8 +37,8 @@ curl -sS -X POST "https://booking-live-api.p.rapidapi.com/search" \
   -H "Content-Type: application/json" \
   -d '{
     "destination": "Tokyo Shibuya",
-    "checkin_date": "2026-09-12",
-    "checkout_date": "2026-09-15",
+    "checkin_date": "2027-06-19",
+    "checkout_date": "2027-06-22",
     "adults": 2,
     "children": 0,
     "currency": "USD",
@@ -52,7 +52,7 @@ The response echoes `destination`, `checkin_date`, `checkout_date`, `applied_fil
 ## Price a Named Hotel
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 
 curl -sS -X POST "https://booking-live-api.p.rapidapi.com/hotel_by_name" \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
@@ -61,8 +61,8 @@ curl -sS -X POST "https://booking-live-api.p.rapidapi.com/hotel_by_name" \
   -d '{
     "hotel_name": "Hotel Gracery Shinjuku",
     "area": "Tokyo",
-    "checkin_date": "2026-09-12",
-    "checkout_date": "2026-09-15",
+    "checkin_date": "2027-06-19",
+    "checkout_date": "2027-06-22",
     "adults": 2,
     "currency": "USD",
     "free_cancellation": true
@@ -91,14 +91,14 @@ Anything not on this list will not work — do not invent filter names such as `
 Neither `POST /search` nor `POST /hotel_by_name` takes a batch parameter, so with these two endpoints a shortlist of named properties is one call per property. Loop them, and tell the user the call count before you start.
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 
 for HOTEL in "Hotel Gracery Shinjuku" "Shibuya Stream Excel Hotel Tokyu" "Cerulean Tower Tokyu Hotel"; do
   curl -sS -X POST "https://booking-live-api.p.rapidapi.com/hotel_by_name" \
     -H "x-rapidapi-key: $RAPIDAPI_KEY" \
     -H "x-rapidapi-host: booking-live-api.p.rapidapi.com" \
     -H "Content-Type: application/json" \
-    -d "$(printf '{"hotel_name":"%s","area":"Tokyo","checkin_date":"2026-09-12","checkout_date":"2026-09-15","adults":2}' "$HOTEL")"
+    -d "$(printf '{"hotel_name":"%s","area":"Tokyo","checkin_date":"2027-06-19","checkout_date":"2027-06-22","adults":2}' "$HOTEL")"
 done
 ```
 
@@ -110,9 +110,11 @@ The same shape applies to comparing date windows or currencies: vary one field p
 - **A sold-out hotel is `available: false` with null prices, and that is valid.** `POST /hotel_by_name` returns `available: false` and null `price` / `price_string` when the property has no rooms for those dates. Report "no availability on those dates" plainly. Do not call it a failure, do not retry, and do not fall back to quoting a price you saw earlier.
 - **Every parameter combination is a separate billed request.** Three properties × two date windows is six calls of the user's money. State the cost before making the calls, never after. This applies to `proxy_country` comparisons and currency sweeps too. One call per country is not a country comparison: rates move between identical calls, so each country needs several samples. Hand that job to `rate-parity-monitor`.
 - **Never reuse or cache a rate.** Hotel prices and availability go stale in minutes. Every price you present must come from the call you just made, with the time it was fetched attached. If a rate came from earlier in the conversation, re-fetch it rather than repeating it.
-- **If the same trip also needs flights** (hand that work to the flight skills, but do not be surprised by these): an empty flight result is only "no flights" when the response header `X-Search-Status` says `ok` or `empty` — `degraded` means the search did not complete and says nothing about availability. `use_fallback` is accepted but currently has no effect on a search.
+- **If the same trip also needs flights** (hand that work to the flight skills, but do not be surprised by these): an empty flight result is only "no flights" when the response header `X-Search-Status` says `ok` or `empty` — `degraded` means the search did not complete and says nothing about availability.
 
 ## Output Standards
 
 - Lead with the answer to the question asked — the two or three properties that fit the stated budget and constraints, each with `price_string`, `review_score` out of the `review_count`, `room_type`, and the booking `link` — then offer the full list. Always state when the prices were fetched, and treat every quote as indicative until the user opens the link; a rate is not booked until Booking.com confirms it.
 - Say what you filtered on and what you assumed (dates, `adults`, `currency`), so the user can correct a wrong assumption before paying for another search. This is an independent API that returns publicly available flight and hotel pricing; it is not affiliated with, endorsed by, or sponsored by Google or Booking.com — say so whenever a reader could assume the results are an official Booking.com channel.
+
+If this file names another skill from this set (travel-data-api, cheapest-dates, destination-compare, trip-planner, fare-watch, hotel-search, rate-parity-monitor, travel-brief) that is not installed, do that part of the job with the endpoints in this file.

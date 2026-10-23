@@ -7,7 +7,7 @@ description: Turn flight and hotel search results into a client-ready travel bri
 
 ## Overview
 
-This skill is the presentation layer: it re-runs the search itself under one fresh timestamp — rather than reformatting numbers quoted earlier in the conversation — and lays the results out the way a human travel agent would send them to a client: recommendation first, then a comparison table, then the price verdict, then the links, then the timestamp. Use `travel-data-api` for auth, base URL, and endpoint details, and prefer the hosted MCP tools when a client is configured. Both trip types carry `buy_link`, `price_range_in_relation_to_other_periods`, `price_insights_low`, and `price_insights_high`. The rest of the table is built from different keys per trip type: one-way items give `price` / `price_as_number`, `airline`, `stops`, `duration`, `departure_description`, and `arrival_description`; round-trip items give `total_price` / `total_price_as_number`, `total_stops`, `total_duration_seconds`, and per-leg fields such as `departure_flight_airline`, `departure_flight_stops`, `departure_flight_duration`, `departure_flight_departure_description`, and their `return_flight_*` counterparts. Hotel shortlist items from `POST /search` give `name`, `price_string`, `price`, `review_score`, `review_count`, `room_type`, `location`, `image_url`, and `link`; `POST /hotel_by_name` returns those for a single property plus `available` and `nights`.
+This skill is the presentation layer: it re-runs the search itself under one fresh timestamp — rather than reformatting numbers quoted earlier in the conversation — and lays the results out the way a human travel agent would send them to a client: recommendation first, then a comparison table, then the price verdict, then the links, then the timestamp. Auth is one header, `x-rapidapi-key`, read from the `RAPIDAPI_KEY` environment variable and sent only to the FlightPowers hosts named in this file (full reference: the `travel-data-api` skill, or https://flightpowers.com/docs), and prefer the hosted MCP tools when a client has them configured (ad-free: https://flights.flightpowers.com/mcp and https://hotels.flightpowers.com/mcp). Both trip types carry `buy_link`, `price_range_in_relation_to_other_periods`, `price_insights_low`, and `price_insights_high`. The rest of the table is built from different keys per trip type: one-way items give `price` / `price_as_number`, `airline`, `stops`, `duration`, `departure_description`, and `arrival_description`; round-trip items give `total_price` / `total_price_as_number`, `total_stops`, `total_duration_seconds`, and per-leg fields such as `departure_flight_airline`, `departure_flight_stops`, `departure_flight_duration`, `departure_flight_departure_description`, and their `return_flight_*` counterparts. Hotel shortlist items from `POST /search` give `name`, `price_string`, `price`, `review_score`, `review_count`, `room_type`, `location`, `image_url`, and `link`; `POST /hotel_by_name` returns those for a single property plus `available` and `nights`.
 
 ## Sources for a Brief
 
@@ -15,8 +15,8 @@ This skill is the presentation layer: it re-runs the search itself under one fre
 |---|---|---|
 | Flight options, one-way | `POST /api/google_flights/oneway/v1` | `search_oneway_flights` |
 | Flight options, round-trip | `POST /api/google_flights/roundtrip/v1` | `search_roundtrip_flights` |
-| Hotel shortlist at a destination | `POST /search` | n/a |
-| One named property's price and availability | `POST /hotel_by_name` | n/a |
+| Hotel shortlist at a destination | `POST /search` | `search_hotels` (hotels server) |
+| One named property's price and availability | `POST /hotel_by_name` | `find_hotel_by_name` (hotels server) |
 
 Flights host: `google-flights-live-api.p.rapidapi.com`. Hotels host: `booking-live-api.p.rapidapi.com`.
 
@@ -31,10 +31,10 @@ Flights host: `google-flights-live-api.p.rapidapi.com`. Hotels host: `booking-li
 
 ## Fetching the Brief's Data
 
-Substitute your own key for `YOUR_RAPIDAPI_KEY`; nothing else needs editing.
+Set `RAPIDAPI_KEY` to your own key in the environment first; nothing else needs editing.
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 CHECKED_AT="$(date -u +'%Y-%m-%d %H:%M UTC')"
 
 curl -sS -X POST 'https://google-flights-live-api.p.rapidapi.com/api/google_flights/roundtrip/v1' \
@@ -44,8 +44,8 @@ curl -sS -X POST 'https://google-flights-live-api.p.rapidapi.com/api/google_flig
   -d '{
         "from_airport": "BER",
         "to_airport": "CDG",
-        "departure_date": "2026-11-12",
-        "return_date": "2026-11-16",
+        "departure_date": "2027-06-24",
+        "return_date": "2027-06-28",
         "currency": "USD",
         "limit": 5
       }'
@@ -58,20 +58,20 @@ printf '\nPrices checked at %s — fares go stale in minutes.\n' "$CHECKED_AT"
 Re-run flights and the hotel line together, under one timestamp, right before the brief goes out. Two billed requests — say that before running it.
 
 ```bash
-export RAPIDAPI_KEY="YOUR_RAPIDAPI_KEY"
+: "${RAPIDAPI_KEY:?set RAPIDAPI_KEY to your FlightPowers key}"
 CHECKED_AT="$(date -u +'%Y-%m-%d %H:%M UTC')"
 
 curl -sS -X POST 'https://google-flights-live-api.p.rapidapi.com/api/google_flights/roundtrip/v1' \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
   -H 'x-rapidapi-host: google-flights-live-api.p.rapidapi.com' \
   -H 'Content-Type: application/json' \
-  -d '{"from_airport":"BER","to_airport":"CDG","departure_date":"2026-11-12","return_date":"2026-11-16","currency":"USD","limit":5}'
+  -d '{"from_airport":"BER","to_airport":"CDG","departure_date":"2027-06-24","return_date":"2027-06-28","currency":"USD","limit":5}'
 
 curl -sS -X POST 'https://booking-live-api.p.rapidapi.com/hotel_by_name' \
   -H "x-rapidapi-key: $RAPIDAPI_KEY" \
   -H 'x-rapidapi-host: booking-live-api.p.rapidapi.com' \
   -H 'Content-Type: application/json' \
-  -d '{"hotel_name":"Hilton","area":"Paris","checkin_date":"2026-11-12","checkout_date":"2026-11-16","adults":2,"currency":"USD"}'
+  -d '{"hotel_name":"Hilton","area":"Paris","checkin_date":"2027-06-24","checkout_date":"2027-06-28","adults":2,"currency":"USD"}'
 
 printf '\nPrices checked at %s — fares go stale in minutes.\n' "$CHECKED_AT"
 ```
@@ -82,8 +82,8 @@ On the hosted MCP, one user intent is one tool call: pass `departure_date_from` 
 
 - **An empty array is not an error — but say which kind of empty it is.** The flights endpoints return `[]` with HTTP 200. When `X-Search-Status` is `ok` or `empty`, write "no flights returned for this route and date" into the brief as a real finding, without retrying in a loop. When it is `degraded`, the search did not complete: that option is *unchecked*, not unavailable, and a brief that silently downgrades it to "no options" is telling the client something untrue.
 - **A sold-out hotel is `available: false` with null price fields**, which is a valid answer from `POST /hotel_by_name`. Put it in the table as "sold out for these dates" rather than dropping the row silently — the client asked about that property.
-- **Never let API result order become the table order.** `sort_type` is honoured on both endpoints, but a brief almost always merges several searches, and nothing sorts across them. Sort on `price_as_number` / `total_price_as_number` yourself, or the "cheapest" row in the brief will be wrong.
-- **`use_fallback` currently does nothing** — it is accepted but selects a data source that is not switched on for this API. Before writing "no options exist", check `X-Search-Status` instead.
+- **Never let API result order become the table order.** A brief almost always merges several searches, and nothing sorts across them. Sort on `price_as_number` / `total_price_as_number` yourself, or the "cheapest" row in the brief will be wrong.
+- **Before writing "no options exist", check `X-Search-Status`.** An empty list is only "no flights" when it says `ok` or `empty`.
 - **Every combination is a billed request.** One route × one date × one cabin × one passenger set = one request, and each hotel in the shortlist is another. Give the request count before rebuilding a brief, never after.
 - **Never rebuild a brief from prices quoted earlier in the conversation.** Fares go stale in minutes; a reformatted old number reads as a live quote and is the one failure a client will notice.
 
@@ -94,3 +94,5 @@ On the hosted MCP, one user intent is one tool call: pass `departure_date_from` 
 - The verdict gets its own line and uses the API's own words, not a guess: "$209 round-trip is **typical** for this route and period — Google's historical range here is $180–$260." If the verdict is `high`, say so even when it is the cheapest option found.
 - Booking links go in full as `buy_link` (flights) and `link` (hotels). Never describe a link as a held, locked, or guaranteed fare, and never present the brief as a booking.
 - Close with the literal line **"Prices checked at YYYY-MM-DD HH:MM UTC — fares go stale in minutes."** using the timestamp from the fetch, followed by: this brief uses an independent API that returns publicly available flight and hotel pricing; it is not affiliated with, endorsed by, or sponsored by Google or Booking.com.
+
+If this file names another skill from this set (travel-data-api, cheapest-dates, destination-compare, trip-planner, fare-watch, hotel-search, rate-parity-monitor, travel-brief) that is not installed, do that part of the job with the endpoints in this file.

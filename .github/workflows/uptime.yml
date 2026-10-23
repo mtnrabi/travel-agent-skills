@@ -32,10 +32,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: paid
-            base: https://google-flights-mcp.flightpowers.com
-          - name: free
-            base: https://google-flights-lulu.flightpowers.com
+          # The two servers every skill and install line in this repo points at.
+          # Both hosts are one deployment told apart by Host header, so each
+          # needs its own probe: a routing fault can take one product down alone.
+          - name: flights
+            base: https://flights.flightpowers.com
+          - name: hotels
+            base: https://hotels.flightpowers.com
     steps:
       - name: mcp handshake
         run: |
