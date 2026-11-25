@@ -77,6 +77,8 @@ Round-trip item fields: `price_range_in_relation_to_other_periods`, `price_insig
 
 **Lead with price insights.** `price_insights_low` / `price_insights_high` are Google's own historical price range for that route and period, and `price_range_in_relation_to_other_periods` is a `low` \| `typical` \| `high` verdict. That is what lets you say "$209 is typical for this route, no need to rush" instead of only quoting a number.
 
+**The verdict and the range exist on the default sort, not on a price sort.** Google gives none on a price-sorted page, so `sort_type: "Price"` returns `price_insights_low` / `price_insights_high` as null and an empty verdict, and `max_price` does the same because it selects the price-sorted page. `"Duration"` keeps them. To get the cheapest fare with its verdict, leave both out and take the lowest `price_as_number` / `total_price_as_number` in your own code; the default order is fewest stops first, cut at `limit`. Use `sort_type: "Price"` or `max_price` only when you want the lowest number and nothing about whether it is a good one.
+
 ### Hotels - host `booking-live-api.p.rapidapi.com`
 
 | Endpoint | Required | Returns |
@@ -113,7 +115,7 @@ curl -sS -X POST "https://google-flights-live-api.p.rapidapi.com/api/google_flig
   -H "x-rapidapi-host: google-flights-live-api.p.rapidapi.com" \
   -H "Content-Type: application/json" \
   -d '{"from_airport":"BER","to_airport":"CDG","departure_date":"2027-06-22",
-       "return_date":"2027-06-27","sort_type":"Price","currency":"USD","limit":10}'
+       "return_date":"2027-06-27","currency":"USD","limit":10}'
 ```
 
 ```bash
