@@ -30,7 +30,7 @@ This is an independent API that returns publicly available flight and hotel pric
 1. **Resolve the request into dates and airports before calling anything.** Convert the destination to an IATA airport code (Rome → `FCO`). Turn "a week in May" into a concrete `departure_date` and `return_date`. Ask for the origin airport if the user did not give one — never guess it, a wrong origin makes every number downstream wrong.
 2. **Derive nights from the dates, not from the word "week".** `nights = checkout_date − checkin_date` in days. `2027-06-26` → `2027-07-03` is **7 nights** (8 days on the ground). A "week-long trip" is 7 nights only if the user means 7 sleeps; if they said "7 days", confirm whether that is 6 or 7 nights before you price anything.
 3. **State the cost before you spend it.** Every search is a billed request against the user's own key. Say "this is 2 calls — one flight search, one hotel search" up front. If you are comparing 3 date windows × 2 cities, that is 6 flight calls plus 6 hotel calls; get agreement first.
-4. **Search flights first.** The flight is the larger and least flexible number, and it sets the hotel envelope. Pass `max_price` as the flight ceiling for the WHOLE party (it is compared with the total for every passenger, not per person), `currency`, `passengers[]` (1 adult, 2 child, 3 infant on lap, 4 infant in seat), and `sort_type: "Price"`.
+4. **Search flights first.** The flight is the larger and least flexible number, and it sets the hotel envelope. Pass `currency` and `passengers[]` (1 adult, 2 child, 3 infant on lap, 4 infant in seat), and leave out both `sort_type` and `max_price`: a price-sorted Google page carries no verdict and no usual range, and `max_price` forces that sort. Then take the row with the lowest `total_price_as_number` yourself and check it against the flight ceiling for the WHOLE party (the total covers every passenger, it is not per person).
 5. **Align `checkin_date` / `checkout_date` to the flight, not to the request.** Read `departure_flight_arrival_description` (e.g. `"8:50 AM on Mon, Jun 1"`). On a red-eye or long-haul the outbound lands the day *after* `departure_date` — in that case `checkin_date` is the arrival day, not the departure day. Likewise if `return_flight_departure_description` is an early-morning slot, the traveller still needs the previous night, so `checkout_date` stays the return day. Recompute `nights` after this adjustment.
 6. **Compute the hotel envelope, then search hotels.** With a per-person budget `B`, the flight total for the whole party `F` = `total_price_as_number` (a round trip for two adults is priced for both), `N` nights and `A` adults sharing one room: `room_budget = (B × A) − F` and `budget_per_night = room_budget ÷ N`. Worked example: B = 2000, A = 2, F = 1800 (the flight ceiling below), N = 7 → room_budget 2200 → about 314 a night. Send that as `budget_per_night`, with `filters: ["free_cancellation", "review_score_8"]` so the shortlist is refundable and well-reviewed.
 7. **Combine and present.** Per-person total = `(F + hotel_stay_cost) ÷ A`, where `A` is every traveller the budget is per head of (children included if their fares are in `F`). Show the gap to budget, the `price_range_in_relation_to_other_periods` verdict against `price_insights_low`/`price_insights_high`, both live links, and the timestamp of the search.
@@ -53,13 +53,13 @@ curl -sS -X POST \
     "passengers": [1, 1],
     "seat_type": 1,
     "currency": "USD",
-    "max_price": 1800,
-    "sort_type": "Price",
     "max_departure_stops": 1,
     "max_return_stops": 1,
     "limit": 10
   }'
 ```
+
+Rows come back with the fewest stops first, not cheapest first, so pick the minimum `total_price_as_number` and compare it with the ceiling (1800 here) in your own code. `"sort_type": "Price"` or `max_price` only fit when you want the lowest number and no verdict: both return `price_insights_low` / `price_insights_high` as null.
 
 ## Search Hotels for Exactly Those Nights
 
@@ -103,7 +103,7 @@ for WINDOW in "2027-06-19|2027-06-26" "2027-06-26|2027-07-03" "2027-07-03|2027-0
     -H "x-rapidapi-key: ${RAPIDAPI_KEY}" \
     -H "x-rapidapi-host: google-flights-live-api.p.rapidapi.com" \
     -H "Content-Type: application/json" \
-    -d "{\"from_airport\":\"JFK\",\"to_airport\":\"FCO\",\"departure_date\":\"${DEP}\",\"return_date\":\"${RET}\",\"passengers\":[1,1],\"currency\":\"USD\",\"sort_type\":\"Price\",\"limit\":5}"
+    -d "{\"from_airport\":\"JFK\",\"to_airport\":\"FCO\",\"departure_date\":\"${DEP}\",\"return_date\":\"${RET}\",\"passengers\":[1,1],\"currency\":\"USD\",\"limit\":10}"
   curl -sS -X POST \
     "https://booking-live-api.p.rapidapi.com/search" \
     -H "x-rapidapi-key: ${RAPIDAPI_KEY}" \
@@ -119,7 +119,7 @@ When an MCP client is configured, do the flight half of this in **one** `search_
 
 - **An empty flight result is `[]` with HTTP 200, not an error.** It means "no flights on this route for these dates" only when `X-Search-Status` is `ok` or `empty` — then report it plainly and offer adjacent dates or a nearby airport, without retrying the identical call. On `degraded` the search did not complete: do not tell the user the trip is impossible, and do not price a trip around a flight leg you never actually searched.
 - **A sold-out hotel is `available: false`, not a failure.** On `/hotel_by_name` a sold-out property returns `available: false` with null price fields — that is a valid, correct answer, so say "not available for those nights" rather than reporting an error. On `/search` the equivalent is an empty `properties` array; loosen `budget_per_night` or drop a filter and say that you did.
-- **Rank results yourself.** Never assume the first item is the cheapest, and if you split a trip into two one-ways (open-jaw), combine and rank the two halves yourself.
+- **Rank results yourself.** Never assume the first item is the cheapest (the default order is fewest stops first, cut at `limit`), and if you split a trip into two one-ways (open-jaw), combine and rank the two halves yourself.
 - **On a long-haul or thin route, an empty result is often the search failing, not genuine unavailability.** That is exactly what `X-Search-Status: degraded` tells you: retry on that signal, once and announced. Leave `use_fallback` unset: unset already lets a search whose own retries failed escalate once to a second data source, while `true` forces that source on every attempt, which is much slower and can time out.
 - **Every combination is a billed request.** Three date windows across two cities is twelve calls, not one. Price the plan out loud before running it and let the user cut the matrix down.
 - **Never reuse or cache a fare.** Fares and room rates go stale in minutes. Do not carry a price forward from earlier in the conversation, from an example, or from a previous window — re-search and stamp the result with the time it was fetched.
